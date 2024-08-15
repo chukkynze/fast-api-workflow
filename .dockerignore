@@ -1,0 +1,17 @@
+.git
+
+services/client_api/*.dockerfile
+services/client_app/*.dockerfile
+services/emp_app/*.dockerfile
+services/emp_admin_blackfire/*.dockerfile
+.dockerignore
+volumes/repos_backup
+volumes/repos/client_app/node_modules
+volumes/repos/client_app/.next
+!volumes/repos/client_app/.next/static
+!volumes/repos/client_app/.next/standalone
+volumes/repos/client_app/npm-debug.log
+volumes/repos/client_app/README.md
+volumes/repos/client_app/.idea
+volumes/repos/client_app/.git
+

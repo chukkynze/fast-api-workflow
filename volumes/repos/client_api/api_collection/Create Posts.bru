@@ -1,0 +1,22 @@
+meta {
+  name: Create Posts
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{domain}}/posts
+  body: json
+  auth: none
+}
+
+headers {
+  X-Token: fake-super-secret-token
+}
+
+body:json {
+  {
+    "title": "Top Beaches in Florida",
+    "content": "Check out these awesome beaches."
+  }
+}

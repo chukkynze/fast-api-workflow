@@ -1,0 +1,15 @@
+meta {
+  name: Get Posts
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{domain}}/posts
+  body: none
+  auth: none
+}
+
+headers {
+  X-Token: fake-super-secret-token
+}
