@@ -29,6 +29,8 @@ RUN apt-get update                      \
        curl                             \
        git                              \
        htop                             \
+       libpq-dev                             \
+       psycopg3                       \
        supervisor                       \
        unzip                            \
        vim                              \

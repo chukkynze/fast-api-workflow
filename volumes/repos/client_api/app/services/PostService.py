@@ -51,6 +51,17 @@ class PostService:
 
     @staticmethod
     def service_response(status: bool, data: dict, errors: dict):
+        """
+        The service response creates a consistent data structure response that the
+        consumer of this service can expect. There is no message because the consumer
+        of this service will be responsible for creating and formatting the 'message' to
+        the end consumer/user of the API
+
+        :param status:
+        :param data:
+        :param errors:
+        :return:
+        """
         return {
             "status": status,
             "data": data,
@@ -90,3 +101,39 @@ class PostService:
         print(type(self.post_db[post_id]))
 
         return self.post_db[post_id]
+
+    def update_post(self, post_id, new_post_data):
+
+        print(self.post_db[post_id])
+        print(type(self.post_db[post_id]))
+
+        print(new_post_data)
+        print(type(new_post_data))
+
+        status = True
+        data = {}
+        errors: dict[Any, Any] = {}  # type: ignore
+
+        return self.service_response(
+            status,
+            data,
+            errors
+        )
+
+    def patch_post(self, post_id, new_post_data):
+
+        print(self.post_db[post_id])
+        print(type(self.post_db[post_id]))
+
+        print(new_post_data)
+        print(type(new_post_data))
+
+        status = True
+        data = {}
+        errors: dict[Any, Any] = {}  # type: ignore
+
+        return self.service_response(
+            status,
+            data,
+            errors
+        )

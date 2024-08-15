@@ -3,6 +3,9 @@ from pydantic import BaseModel
 
 
 class CreatePostDataSchema(BaseModel):
+    """
+    This is the minimum data needed in a request to create a post
+    """
     title: str
     content: str
     published: bool = True
@@ -10,7 +13,11 @@ class CreatePostDataSchema(BaseModel):
 
 
 class UpdatePostDataSchema(BaseModel):
-    id: int
+    """
+    The update schema may be different from the create schema
+    because of automatically added fields from defaults and other
+    means
+    """
     title: str
     content: str
     published: bool = True
