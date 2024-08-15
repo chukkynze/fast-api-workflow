@@ -36,5 +36,5 @@ status: get_configs
 ####################################################
 client_api_ssh:
 	@echo 'SSH into the client_api container at /var/www/json'
-	docker exec -it -w /var/www/json client_api bash
+	docker exec -it -w /var/www/json client-api bash
 

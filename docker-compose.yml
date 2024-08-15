@@ -68,6 +68,23 @@ services:
     networks:
       - gen-dev-network
 
+  # Client MySQL
+  ###########################################
+  client_postgres:
+    image: postgres:16.4-alpine
+    ports:
+      - "${CLIENT_POSTGRESDB_PORT}:5432"
+    volumes:
+      - ./volumes/data/client/postgres/storage/persist:/var/lib/postgresql/data
+      - ./volumes/data/client/postgres/storage/startup:/docker-entrypoint-initdb.d
+      - ./volumes/data/client/postgres/config/postgres.cnf:/etc/postgres/conf.d/my.cnf
+    environment:
+      - POSTGRES_PASSWORD=${CLIENT_POSTGRESDB_PASSWORD}
+      - POSTGRES_USER=${CLIENT_POSTGRESDB_USER}
+      - POSTGRES_DB=${CLIENT_POSTGRESDB_DATABASE}
+    networks:
+      - gen-dev-network
+
 networks:
 
   gen-dev-network:
