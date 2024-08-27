@@ -1,15 +1,41 @@
+import datetime
 from typing import Optional
 from pydantic import BaseModel
 
 
-class CreatePostDataSchema(BaseModel):
+class CreatePostRequestDataSchema(BaseModel):
     """
-    This is the minimum data needed in a request to create a post
+    This is the data needed in the request to create a post
     """
     title: str
     content: str
     published: bool = True
     rating: Optional[float] = None
+
+
+class CreatePostInsertDataSchema(BaseModel):
+    """
+    This is the data needed by the Posts Service to create a post
+    """
+    title: str
+    content: str
+    published: bool = True
+    rating: Optional[float] = None
+
+
+class GetPostResponseDataSchema(BaseModel):
+    """
+    This is the data needed by the Posts Service to create a post
+    """
+    id: int
+    uuid: str
+    title: str
+    content: str
+    published: bool
+    rating: float
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
+    deleted_at: datetime.datetime
 
 
 class UpdatePostDataSchema(BaseModel):
