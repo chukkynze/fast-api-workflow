@@ -1,10 +1,11 @@
-import logging
-
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from datetime import datetime
 from starlette import status
+import logging
+
+from app.exceptions.data.PostsExceptions import add_posts_exception_handlers
 
 
 def add_app_exception_handlers(app: FastAPI) -> None:
@@ -18,15 +19,12 @@ def add_app_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):
-        print("======")
-        print(exc)
-        print("======")
-        logging.error(f" Unhandled exception: {exc}")
+        logging.error(f" Unhandled general exception: {exc}")
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
                 "status": False,
-                "message": f"Unhandled Exception: {exc}",
+                "message": f"Unhandled general exception: {exc}",
             },
         )
 
@@ -37,7 +35,7 @@ def add_app_exception_handlers(app: FastAPI) -> None:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
                 "status": False,
-                "message": "Unhandled Index Error",
+                "message": "Unhandled index error",
                 "data": {
                     "err_msg": f"IndexError: {exc}"
                 },
@@ -46,6 +44,7 @@ def add_app_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_exception_handler(request: Request, exc: RequestValidationError):
+        logging.error(f" A request validation exception occurred: {exc}")
         errors = exc.errors()
         err_msg = "Something went wrong."
         for error in errors:
@@ -80,3 +79,9 @@ def add_app_exception_handlers(app: FastAPI) -> None:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content=output_content,
         )
+
+    # Model Exceptions
+    ######################
+
+    # Posts
+    add_posts_exception_handlers(app)
