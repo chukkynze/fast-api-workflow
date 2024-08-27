@@ -19,10 +19,10 @@ docker-compose --env-file="${DEFAULT_DOCKER_COMPOSE_ENV_FILE}" down \
 && docker ps -a \
 && docker-compose --env-file="${DEFAULT_DOCKER_COMPOSE_ENV_FILE}" ps
 
-echo 'Clean: Emp MySQL'
-sudo chown -R "${DEVICE_HOST_USERNAME}":"${DEVICE_HOST_GROUP}" volumes/data/emp/mysql/storage/persist
-rm -Rf volumes/data/emp/mysql/storage/persist/*
-
 echo 'Clean: Client MySQL'
 sudo chown -R "${DEVICE_HOST_USERNAME}":"${DEVICE_HOST_GROUP}" volumes/data/client/mysql/storage/persist
 rm -Rf volumes/data/client/mysql/storage/persist/*
+
+echo 'Clean: Client PostgresSQL'
+sudo chown -R "${DEVICE_HOST_USERNAME}":"${DEVICE_HOST_GROUP}" volumes/data/client/postgres/storage/persist
+rm -Rf volumes/data/client/postgres/storage/persist/*
