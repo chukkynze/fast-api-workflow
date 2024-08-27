@@ -35,3 +35,4 @@ Thumbs.db
 /volumes/repos/client_api/.env
 /volumes/data/client/mysql/storage/persist/
 /volumes/repos/client_api/.venv/
+/volumes/data/client/redis/data/
