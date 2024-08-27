@@ -16,6 +16,19 @@ services:
       args:
         - GIT_USERNAME=${GIT_USERNAME}
         - GIT_EMAIL=${GIT_EMAIL}
+    environment:
+      # REDIS_OM_URL: redis://[[username]:[password]]@localhost:6379/[database number]
+      REDIS_OM_URL: redis://client-redis-stack:6379
+      APP_ENV: development
+#    develop:
+#      watch:
+#        - action: sync
+#          path: ./volumes/repos/client_api
+#          target: /var/www/json
+#          ignore:
+#            - ./volumes/repos/client_api/.venv
+#        - action: rebuild
+#          path: ./volumes/repos/client_api/requirements.txt
     volumes:
       - ./volumes/repos/client_api:/var/www/json
       - ./services/client_api/supervisord.conf:/etc/supervisor/supervisord.conf
@@ -35,13 +48,25 @@ services:
   # Client Redis
   ###########################################
   client_redis:
-    container_name: client-redis
+    container_name: client-redis-stack
     hostname: client-redis-docker-local
-    image: redis:7.0-alpine
+    # this image is dev only. use redis/redis-stack-server for prod
+    image: redis/redis-stack:7.4.0-v0
+    environment:
+      - REDIS_ARGS="--requirepass ${CLIENT_REDIS_PASSWORD}"
+      #- REDISTIMESERIES_ARGS="RETENTION_POLICY=20"
+      #- REDISEARCH_ARGS=""
+      #- REDISJSON_ARGS=""
+      #- REDISGRAPH_ARGS=""
+      #- REDISBLOOM_ARGS=""
     volumes:
-      - ./volumes/data/client/redis/cache:/var/lib/redis
+      - ./volumes/data/client/redis/data:/data
+      - ./volumes/data/client/redis/config/redis-stack.conf:/redis-stack.conf
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${CLIENT_REDIS_PORT}:6379"
+      - "${CLIENT_REDIS_INSIGHT_PORT}:8001"
     networks:
       - gen-dev-network
 
@@ -59,6 +84,8 @@ services:
       - MYSQL_PASSWORD=${CLIENT_MYSQLDB_PASSWORD}
       - MYSQL_ALLOW_EMPTY_PASSWORD=1
     restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${CLIENT_MYSQLDB_PORT}:3306"
     volumes:
@@ -68,16 +95,20 @@ services:
     networks:
       - gen-dev-network
 
-  # Client MySQL
+  # Client Postgres
   ###########################################
-  client_postgres:
+  client_postgresdb:
+    container_name: client-postgresdb
+    hostname: client-postgresdb-docker-local
     image: postgres:16.4-alpine
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${CLIENT_POSTGRESDB_PORT}:5432"
     volumes:
       - ./volumes/data/client/postgres/storage/persist:/var/lib/postgresql/data
       - ./volumes/data/client/postgres/storage/startup:/docker-entrypoint-initdb.d
-      - ./volumes/data/client/postgres/config/postgres.cnf:/etc/postgres/conf.d/my.cnf
+#      - ./volumes/data/client/postgres/config/postgres.cnf:/etc/postgres/conf.d/my.cnf
     environment:
       - POSTGRES_PASSWORD=${CLIENT_POSTGRESDB_PASSWORD}
       - POSTGRES_USER=${CLIENT_POSTGRESDB_USER}
