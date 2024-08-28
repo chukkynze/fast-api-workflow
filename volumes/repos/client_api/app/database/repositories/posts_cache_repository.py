@@ -4,6 +4,8 @@ from typing import Final
 from fastapi import Depends
 from pydantic import ValidationError
 from redis.exceptions import ConnectionError, AuthenticationError
+from redis_om import NotFoundError
+
 from app.database.configs.dbs import get_redis_cache
 from app.database.models.ClientCache.PostsModel import PostsCacheModel
 from app.log.loggers.app_logger import log_exception
@@ -49,6 +51,14 @@ class PostsCacheRepository:
         except AuthenticationError as e:
             log_exception(log, e)
         # assert PostsCacheModel.get(new_cache_post.pk) == new_cache_post
+
+    def find_one_wt_cache_key(self, cache_key: str):
+        log.debug("The cache repository is retrieving a post using a cache key.")
+
+        try:
+            return PostsCacheModel.get(cache_key)
+        except NotFoundError as e:
+            log_exception(log, e)
 
 
 

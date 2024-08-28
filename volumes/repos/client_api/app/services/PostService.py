@@ -4,12 +4,14 @@ from datetime import timezone
 import datetime
 from typing import Any
 
+import uuid
 from pydantic import ValidationError
 
 from app.database.models.CustomerData.PostsModel import PostsModel
 from app.database.repositories.posts_cache_repository import PostsCacheRepository
 from app.database.repositories.posts_repository import PostsRepository
-from app.exceptions.data.PostsExceptions import CreatePostFailurePostServiceException, CachePostFailurePostServiceException
+from app.exceptions.data.PostsExceptions import CreatePostFailurePostServiceException, \
+    CachePostFailurePostServiceException, GetCachedPostFailurePostServiceException
 from app.log.loggers.app_logger import log_exception
 from app.schemas.PostRequestsSchemas import CreatePostInsertDataSchema, GetPostResponseDataSchema, \
     CreatePostResponseDataSchema
@@ -164,16 +166,69 @@ class PostService:
             raise CachePostFailurePostServiceException("The service could not store posts in the cache repository.")
 
 
+    # Read
+    def get_post(self, post_uuid: uuid, cache_key: str = None):
+        log.debug('Service is retrieving data for the post with uuid = %s.', post_uuid)
 
+        cache_res = self.get_post_from_cache_wt_key(cache_key)
+        log.debug(cache_res)
+        log.debug(type(cache_res))
 
+        if cache_res is None:
+            output_model = self.posts_repo.find_one(post_uuid)
+            log.debug("The retrieved model is:")
+            log.debug(output_model.__dict__)
+            log.debug("model.deleted_at = %s", output_model.deleted_at)
+            log.debug(type(output_model.deleted_at))
 
+            cache_res = self.store_post_in_cache(output_model)
+        else:
+            output_model = cache_res
 
+        output_data = GetPostResponseDataSchema(
+            uuid=str(output_model.uuid),
+            title=output_model.title,
+            content=output_model.content,
+            rating=output_model.rating,
+            published=output_model.published,
+            created_at=output_model.created_at,
+            updated_at=output_model.updated_at,
+            deleted_at=None if output_model.deleted_at is None or 'NULL' else output_model.deleted_at,
+        ).model_dump()
 
+        status = True
+        data = output_data
+        meta = {
+            "completed": {
+                "at": datetime.datetime.now().isoformat(),
+            },
+            "model": {
+                "cache_key": cache_res.pk
+            }
+        }
+        errors = {}
 
+        return self.service_response(
+            status,
+            data,
+            errors,
+            meta
+        )
 
+    def get_post_from_cache_wt_key(self, cache_key: str):
+        log.debug("Getting a post from the cache repository using it's cache key.")
 
+        try:
+            cache_res = self.posts_cache.find_one_wt_cache_key(cache_key)
+            log.debug("Cache Results are: ")
+            log.debug(cache_res)
 
-    # Get All Posts
+            return cache_res
+
+        except Exception as e:
+            log_exception(log, e)
+            raise GetCachedPostFailurePostServiceException("The service could not get a post from the cache repository.")
+
     def get_posts(self):
         log.debug('Service is getting all posts.')
 
@@ -182,22 +237,17 @@ class PostService:
         log.debug(cached_posts)
         log.debug(type(cached_posts))
 
-        if len(cached_posts.len) == 0:
+        if len(cached_posts) == 0:
             log.debug("No posts exist in cache. Retrieving from the repo instead.")
-            repo_posts = self.get_posts_from_repo()
+            posts = self.get_posts_from_repo()
             log.debug("Retrieved all posts from the repo.")
-            log.debug(repo_posts)
-            log.debug(type(repo_posts))
+            log.debug(posts)
+            log.debug(type(posts))
 
-            try:
-                self.store_posts_in_cache(repo_posts)
-            except Exception as e:
-                log_exception(log, e)
         else:
             posts = []
             for cached_post in cached_posts:
                 cleaned_post = GetPostResponseDataSchema(
-                    id=cached_post.id,
                     uuid=cached_post.uuid,
                     title=cached_post.title,
                     content=cached_post.content,
@@ -205,24 +255,27 @@ class PostService:
                     rating=cached_post.rating,
                     created_at=cached_post.created_at,
                     updated_at=cached_post.updated_at,
-                    deleted_at=cached_post.deleted_at,
+                    deleted_at=None if cached_post.deleted_at is None or 'NULL' else cached_post.deleted_at,
                 )
                 posts.append(cleaned_post)
-
 
         status = True
         data = posts
         errors = {}
-
+        meta = {
+            "completed": {
+                "at": datetime.datetime.now().isoformat(),
+            },
+            "model": {
+                "total_posts": len(posts)
+            }
+        }
         return self.service_response(
             status=status,
             data=data,
             errors=errors,
-            meta={
-                "total_posts": len(posts)
-            }
+            meta=meta
         )
-
 
     def get_posts_from_repo(self):
         log.debug("Retrieving posts from the repo.")
@@ -232,17 +285,6 @@ class PostService:
             log_exception(log, e)
             raise Exception("The service could not get all stored posts from the repo.")
 
-    def store_posts_in_cache(self, posts):
-        log.debug("Storing posts in the cache repository.")
-        try:
-            if len(posts) > 0:
-                post_cache_data = self.convert_model_to_cacheable_data(posts)
-                self.posts_cache.store_posts(post_cache_data)
-            else:
-                log.debug("There are %s posts. Will not cache an empty list.", posts.len())
-        except Exception as e:
-            log_exception(log, e)
-            raise Exception("The service could not store posts in the cache repository.")
 
 
 
@@ -252,8 +294,14 @@ class PostService:
 
 
 
-    def delete_post(self, post_id):
-        # delete cache
+
+
+
+
+
+    # Delete
+    def delete_post(self, post_uuid: uuid):
+        log.debug('Service is deleting data for the post with uuid = %s.', post_uuid)
 
         status = True
         data = {}
@@ -264,13 +312,6 @@ class PostService:
             data,
             errors
         )
-
-    def get_post(self, post_id):
-
-        print(self.post_db[post_id])
-        print(type(self.post_db[post_id]))
-
-        return self.post_db[post_id]
 
     def update_post(self, post_id, new_post_data):
         # delete cache

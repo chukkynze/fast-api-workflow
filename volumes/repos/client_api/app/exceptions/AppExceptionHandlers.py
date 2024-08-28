@@ -34,14 +34,28 @@ def add_app_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(IndexError)
     async def index_error_exception_handler(request: Request, exc: IndexError):
-        log.error(f" Unhandled index error: {exc}")
+        log.error(f"IndexError: {exc}")
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
                 "status": False,
-                "message": "Unhandled index error",
+                "message": "An index has an error",
                 "data": {
                     "err_msg": f"IndexError: {exc}"
+                },
+            },
+        )
+
+    @app.exception_handler(ValueError)
+    async def index_error_exception_handler(request: Request, exc: ValueError):
+        log.error(f"ValueError: {exc}")
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "status": False,
+                "message": "A value has an error.",
+                "data": {
+                    "err_msg": f"{exc}"
                 },
             },
         )

@@ -75,7 +75,20 @@ class PostsRepository:
             posts = self.postgresdb.query(PostsModel).all()
             return posts
         except Exception as e:
-            log.debug(Exception.with_traceback)
+            log.debug(e)
+            log_exception(log, e)
+            raise Exception("The posts repository could not find all posts")
+
+    def find_one(self, post_uuid):
+        try:
+            post = (self.postgresdb.query(PostsModel)
+                     .filter(PostsModel.uuid == post_uuid)
+                     .first())
+
+            return post
+        except Exception as e:
+            log.debug(e)
+            log_exception(log, e)
             raise Exception("The posts repository could not find all posts")
 
 

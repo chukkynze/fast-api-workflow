@@ -47,6 +47,11 @@ class CachePostFailurePostServiceException(Exception):
         self.message = message
 
 
+class GetCachedPostFailurePostServiceException(Exception):
+    def __init__(self, message: str):
+        self.message = message
+
+
 class PostsRepositoryInsertException(Exception):
     def __init__(self, message: str):
         self.message = message
