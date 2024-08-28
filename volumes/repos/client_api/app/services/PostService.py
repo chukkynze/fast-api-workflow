@@ -1,16 +1,21 @@
 import json
+import logging
 from datetime import timezone
 import datetime
 from typing import Any
+
+from pydantic import ValidationError
+
 from app.database.models.CustomerData.PostsModel import PostsModel
 from app.database.repositories.posts_cache_repository import PostsCacheRepository
 from app.database.repositories.posts_repository import PostsRepository
 from app.exceptions.data.PostsExceptions import CreatePostFailurePostServiceException, CachePostFailurePostServiceException
-from app.log.loggers.app_logger import log_exception, get_service_logger
-from app.schemas.PostRequestsSchemas import CreatePostInsertDataSchema, GetPostResponseDataSchema
+from app.log.loggers.app_logger import log_exception
+from app.schemas.PostRequestsSchemas import CreatePostInsertDataSchema, GetPostResponseDataSchema, \
+    CreatePostResponseDataSchema
 
 # Logging
-log = get_service_logger()
+log = logging.getLogger(__name__)
 
 class PostService:
     """
@@ -89,30 +94,39 @@ class PostService:
 
 
 
-    # Get a Post
+    # Create
     def create_post(self, new_post_data: CreatePostInsertDataSchema):
         log.debug('Service is processing new post data.')
 
         try:
-            log.debug("Service is trying to send new post data to the repository.")
+            log.debug("The Posts Service is attempting to send new post data to the repository.")
             new_model = self.posts_repo.insert(**new_post_data.model_dump())
             log.debug("The new model is:")
-            log.debug(new_model)
+            log.debug(new_model.__dict__)
+
             cache_res = self.store_post_in_cache(new_model)
 
+            output_data = CreatePostResponseDataSchema(
+                uuid=str(new_model.uuid),
+                title=new_model.title,
+                content=new_model.content,
+                rating=new_model.rating,
+                published=new_model.published,
+                created_at=new_model.created_at,
+                updated_at=new_model.updated_at,
+                deleted_at=None if new_model.deleted_at == "" else new_model.deleted_at,
+            ).model_dump()
+
             status = True
-            data = {
-                "id": new_model.id,
-                "uuid": new_model.uuid,
-                "title": new_model.title,
-                "content": new_model.content,
-                "rating": new_model.rating,
-                "published": new_model.published,
-                "created_at": new_model.created_at,
-                "updated_at": new_model.updated_at,
-                "deleted_at": new_model.deleted_at,
+            data = output_data
+            meta = {
+                "completed": {
+                    "at": datetime.datetime.now().isoformat(),
+                },
+                "model": {
+                    "cache_key": cache_res.pk
+                }
             }
-            meta = {"cached_model": cache_res}
             errors = {}
 
             return self.service_response(
@@ -121,6 +135,9 @@ class PostService:
                 errors,
                 meta
             )
+        except ValidationError as e:
+            log.debug(e)
+            raise CreatePostFailurePostServiceException('Data from the repo is not acceptable to the posts service layer.')
         except Exception as e:
             log_exception(log, e)
             raise CreatePostFailurePostServiceException('Could not create a post in the posts service layer.')
@@ -145,6 +162,15 @@ class PostService:
         except Exception as e:
             log_exception(log, e)
             raise CachePostFailurePostServiceException("The service could not store posts in the cache repository.")
+
+
+
+
+
+
+
+
+
 
 
     # Get All Posts
@@ -217,12 +243,6 @@ class PostService:
         except Exception as e:
             log_exception(log, e)
             raise Exception("The service could not store posts in the cache repository.")
-
-    def do_cached_posts_exist(self) -> bool:
-        log.debug("Checking the cache repository for cached set of all posts.")
-        cache = self.posts_cache
-        return cache.do_cached_posts_exist()
-
 
 
 

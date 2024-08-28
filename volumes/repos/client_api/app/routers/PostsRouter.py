@@ -1,10 +1,12 @@
+import logging
+from datetime import datetime
+
 from fastapi import APIRouter, Response, status
-from app.log.loggers.app_logger import get_app_logger
 from app.schemas.PostRequestsSchemas import CreatePostRequestDataSchema, CreatePostInsertDataSchema, UpdatePostDataSchema, PatchDataSchema
 from app.services.PostService import PostService
 
 # Logging
-log = get_app_logger()
+log = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/posts",
@@ -14,8 +16,8 @@ router = APIRouter(
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_post(request_post_data: CreatePostRequestDataSchema, response: Response):
-
-    log.debug("Hit: create_post method of PostsRouter.")
+    started_at = datetime.now().isoformat()
+    log.info("Hit: create post path.")
 
     insert_data = {
         "title": request_post_data.title,
@@ -34,9 +36,12 @@ async def create_post(request_post_data: CreatePostRequestDataSchema, response: 
     log.debug("Service response = %s", service_res)
 
     meta = {
-                "timestamp": "",
-                "sent": request_post_data
-            } | service_res["meta"]
+                "started": {
+                    "at": started_at,
+                    "with": request_post_data
+                },
+                "response": {} | service_res["meta"]
+            }
 
     if service_res["status"] is True:
         app_response = {

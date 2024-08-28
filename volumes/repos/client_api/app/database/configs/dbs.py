@@ -1,11 +1,12 @@
+import logging
+
 from redis_om import get_redis_connection
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.log.loggers.app_logger import get_repo_logger
 from app.config import config
 
 
-log = get_repo_logger()
+log = logging.getLogger(__name__)
 
 
 def get_redis_cache():

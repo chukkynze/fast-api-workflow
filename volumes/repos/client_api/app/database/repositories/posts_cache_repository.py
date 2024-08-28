@@ -1,15 +1,15 @@
 import json
+import logging
 from typing import Final
-
 from fastapi import Depends
 from pydantic import ValidationError
 from redis.exceptions import ConnectionError, AuthenticationError
 from app.database.configs.dbs import get_redis_cache
 from app.database.models.ClientCache.PostsModel import PostsCacheModel
-from app.log.loggers.app_logger import get_repo_logger, log_exception
+from app.log.loggers.app_logger import log_exception
 
 
-log = get_repo_logger()
+log = logging.getLogger(__name__)
 
 
 class PostsCacheRepository:
@@ -24,7 +24,6 @@ class PostsCacheRepository:
 
     def store_post(self, post: dict):
         log.debug("The cache repository is storing a post.")
-        # log.debug(json.dumps(post))
 
         try:
             new_cache_post = PostsCacheModel(
@@ -89,25 +88,5 @@ class PostsCacheRepository:
         return self.redis_cache.exists(cache_key)
 
 
-    def store_posts(self, posts):
-        log.debug("The cache repository is storing posts")
-        log.debug(posts)
-        log.debug(type(posts))
-        log.debug(json.dumps(posts))
-        log.debug(type(json.dumps(posts)))
-        self.redis_cache.hset(f"{self.KEY_GET_ALL}", json.dumps(posts))
 
 
-    def insert(self):
-        """
-        this will break the find_all cache
-        but in the service?
-        :return:
-        """
-        pass
-
-    def add_new_post_to_posts_cache(self, new_post):
-        pass
-
-    def delete_posts(self):
-        pass

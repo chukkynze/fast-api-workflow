@@ -16,7 +16,8 @@ app = FastAPI(
 )
 
 # Logging
-log = get_app_logger()
+get_app_logger()
+log = logging.getLogger(__name__)
 
 # Exception Handlers
 add_app_exception_handlers(app)
@@ -67,6 +68,7 @@ async def root():
 
 @app.get("/health-check", status_code=status.HTTP_200_OK)
 async def health_check():
+    log.info("Health check endpoint hit.")
     return {
         "status": True,
         "message": "But Jesus looked at them and said, “With man this is impossible, but with God all things are possible."

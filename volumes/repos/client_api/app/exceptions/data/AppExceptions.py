@@ -1,6 +1,11 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette import status
+
+# Logging
+log = logging.getLogger(__name__)
 
 
 def add_data_exception_handlers(app: FastAPI) -> None:
@@ -12,7 +17,7 @@ def add_data_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(DatabaseConnectionException)
     async def item_not_found_exception_handler(request: Request, exc: DatabaseConnectionException):
 
-        print(exc.__dict__)
+        log.debug(exc.__dict__)
 
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

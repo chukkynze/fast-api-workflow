@@ -1,13 +1,15 @@
+import logging
+
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from app.database.configs.dbs import get_mysql_db, get_postgres_db
 from app.database.models.CustomerData.PostsModel import PostsModel
 from app.exceptions.data.PostsExceptions import PostsRepositoryInsertException
-from app.log.loggers.app_logger import get_repo_logger, log_exception
+from app.log.loggers.app_logger import log_exception
 
 
 # Logging
-log = get_repo_logger()
+log = logging.getLogger(__name__)
 
 
 class PostsRepository:

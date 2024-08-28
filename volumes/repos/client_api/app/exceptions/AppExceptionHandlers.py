@@ -1,11 +1,15 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from datetime import datetime
 from starlette import status
-import logging
-
 from app.exceptions.data.PostsExceptions import add_posts_exception_handlers
+
+
+# Logging
+log = logging.getLogger(__name__)
 
 
 def add_app_exception_handlers(app: FastAPI) -> None:
@@ -19,7 +23,7 @@ def add_app_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):
-        logging.error(f" Unhandled general exception: {exc}")
+        log.error(f" Unhandled general exception: {exc}")
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
@@ -30,7 +34,7 @@ def add_app_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(IndexError)
     async def index_error_exception_handler(request: Request, exc: IndexError):
-        logging.error(f" Unhandled index error: {exc}")
+        log.error(f" Unhandled index error: {exc}")
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
@@ -44,7 +48,7 @@ def add_app_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_exception_handler(request: Request, exc: RequestValidationError):
-        logging.error(f" A request validation exception occurred: {exc}")
+        log.error(f" A request validation exception occurred: {exc}")
         errors = exc.errors()
         err_msg = "Something went wrong."
         for error in errors:
