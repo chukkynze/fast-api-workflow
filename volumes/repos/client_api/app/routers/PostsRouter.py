@@ -8,12 +8,21 @@ from app.schemas.PostRequestsSchemas import CreatePostRequestDataSchema, CreateP
     UpdatePostDataSchema, PatchDataSchema
 from app.services.PostService import PostService
 
+#
+#    Especially for here, implement middleware that ensures request handling
+#    fails after one second. Implement in code (req timeouts) and
+#    in platform (k8s proxy-send-timeout). Also do this with databases and caches.
+#   Of course use k6 to test out load and implement ddos protection
+#
+
+
+
 # Logging
 log = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/posts",
-    tags=["v0", "Posts"],
+    tags=["Posts"],
 )
 
 
@@ -113,6 +122,10 @@ async def get_post(
 
 @router.get("/", status_code=status.HTTP_200_OK)
 async def get_posts(response: Response):
+    """
+    :param response:
+    :return:
+    """
     started_at = datetime.now().isoformat()
     log.debug("Hit: get posts")
 
