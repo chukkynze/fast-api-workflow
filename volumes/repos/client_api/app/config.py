@@ -1,19 +1,33 @@
 from pydantic_settings import BaseSettings
 from pydantic.types import SecretStr
-from enum import Enum, IntEnum
+from enum import Enum
+
 
 class AppEnvironmentEnum(str, Enum):
     development = 'development'
-    dev = 'development'
+    dev = 'dev'
     testing = 'testing'
-    test = 'testing'
+    test = 'test'
     acceptance = 'acceptance'
-    qa = 'acceptance'
+    qa = 'qa'
     production = 'production'
-    prod = 'production'
+    prod = 'prod'
+
+
+class AppLogLevelEnum(str, Enum):
+    CRITICAL = "CRITICAL"
+    FATAL = "CRITICAL"
+    ERROR = "ERROR"
+    WARNING = "WARNING"
+    WARN = "WARNING"
+    INFO = "INFO"
+    DEBUG = "DEBUG"
+    NOTSET = "NOTSET"
+
 
 class AppSettings(BaseSettings):
-    APP_ENV: AppEnvironmentEnum = AppEnvironmentEnum.dev
+    APP_ENV: AppEnvironmentEnum
+    APP_LOG_LEVEL: AppLogLevelEnum
     APP_VERSION: str
     APP_PROJECT_NAME: str
     APP_PROJECT_DESCRIPTION: str
@@ -74,5 +88,6 @@ class AppSettings(BaseSettings):
     REDIS_AI_HOST: str
     REDIS_AI_PORT: int
     REDIS_AI_PRIMARY_DB: int
+
 
 config = AppSettings(_env_file="./.env")
