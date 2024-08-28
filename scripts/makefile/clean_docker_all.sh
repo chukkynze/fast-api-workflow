@@ -26,3 +26,7 @@ rm -Rf volumes/data/client/mysql/storage/persist/*
 echo 'Clean: Client PostgresSQL'
 sudo chown -R "${DEVICE_HOST_USERNAME}":"${DEVICE_HOST_GROUP}" volumes/data/client/postgres/storage/persist
 rm -Rf volumes/data/client/postgres/storage/persist/*
+
+echo 'Clean: Client Redis'
+sudo chown -R "${DEVICE_HOST_USERNAME}":"${DEVICE_HOST_GROUP}" volumes/data/client/redis/data
+rm -Rf volumes/data/client/redis/data/*
