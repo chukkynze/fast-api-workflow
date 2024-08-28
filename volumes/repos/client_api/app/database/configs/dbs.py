@@ -1,5 +1,5 @@
 import logging
-
+from functools import lru_cache
 from redis_om import get_redis_connection
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -9,6 +9,7 @@ from app.config import config
 log = logging.getLogger(__name__)
 
 
+@lru_cache(maxsize=None)
 def get_redis_cache():
     """
     Retrieving the redis cache connection.
@@ -23,6 +24,7 @@ def get_redis_cache():
     )
     return redis_client
 
+@lru_cache(maxsize=None)
 def get_redis_search():
     """
     Retrieving the redis search connection.
@@ -37,6 +39,7 @@ def get_redis_search():
     )
     return redis_client
 
+@lru_cache(maxsize=None)
 def get_mysql_db():
     """
     Retrieving the mysql db connection.
@@ -55,6 +58,7 @@ def get_mysql_db():
 
     return mysql_session()
 
+@lru_cache(maxsize=None)
 def get_postgres_db():
     """
     Retrieving the postgres db connection.
