@@ -1,6 +1,8 @@
 import datetime
 from typing import Optional
+
 from pydantic import BaseModel
+
 
 # Create
 class CreatePostRequestDataSchema(BaseModel):

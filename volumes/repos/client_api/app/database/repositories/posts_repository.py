@@ -2,11 +2,11 @@ import logging
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
+
 from app.database.configs.dbs import get_mysql_db, get_postgres_db
 from app.database.models.CustomerData.PostsModel import PostsModel
 from app.exceptions.data.PostsExceptions import PostsRepositoryInsertException
 from app.log.loggers.app_logger import log_exception
-
 
 # Logging
 log = logging.getLogger(__name__)
@@ -72,23 +72,60 @@ class PostsRepository:
         :return:
         """
         try:
-            posts = self.postgresdb.query(PostsModel).all()
+            posts = self.postgresdb.query(PostsModel).filter(PostsModel.deleted_at == None).all()
             return posts
         except Exception as e:
             log.debug(e)
             log_exception(log, e)
             raise Exception("The posts repository could not find all posts")
 
-    def find_one(self, post_uuid):
+
+    def find_one_by_uuid(self, post_uuid):
         try:
             post = (self.postgresdb.query(PostsModel)
-                     .filter(PostsModel.uuid == post_uuid)
-                     .first())
+                     .filter(
+                        PostsModel.uuid == post_uuid,
+                        PostsModel.deleted_at.is_(None)
+                    )
+                    .first())
 
             return post
         except Exception as e:
             log.debug(e)
             log_exception(log, e)
-            raise Exception("The posts repository could not find all posts")
+            raise Exception(f"The posts repository could not find the post identified by uuid {post_uuid}")
+
+    def delete_post_by_uuid(self, post_uuid):
+        log.debug("Repository is deleting a post by the uuid %s", post_uuid)
+        log.debug(post_uuid)
+        log.debug(type(post_uuid))
+
+        try:
+            post = (self.postgresdb
+                .query(PostsModel)
+                .filter(PostsModel.uuid == post_uuid)
+                .delete(synchronize_session=False))
+            self.postgresdb.commit()
+
+            return post
+
+        except Exception as e:
+            log.debug(e)
+            log_exception(log, e)
+            raise Exception(f"The posts repository could not delete the post identified by uuid {post_uuid}")
+
+    def mark_one_as_deleted_by_uuid(self, post_uuid):
+        try:
+            post = (self.postgresdb.query(PostsModel)
+                     .filter(PostsModel.uuid == post_uuid)
+                     .delete(synchronize_session=False))
+
+            return post
+        except Exception as e:
+            log.debug(e)
+            log_exception(log, e)
+            raise Exception(f"The posts repository could not delete the post identified by uuid {post_uuid}")
+
+
 
 

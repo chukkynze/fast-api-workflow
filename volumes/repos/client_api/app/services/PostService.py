@@ -1,17 +1,18 @@
+import datetime
 import json
 import logging
+import uuid
 from datetime import timezone
-import datetime
 from typing import Any
 
-import uuid
 from pydantic import ValidationError
 
 from app.database.models.CustomerData.PostsModel import PostsModel
 from app.database.repositories.posts_cache_repository import PostsCacheRepository
 from app.database.repositories.posts_repository import PostsRepository
 from app.exceptions.data.PostsExceptions import CreatePostFailurePostServiceException, \
-    CachePostFailurePostServiceException, GetCachedPostFailurePostServiceException
+    CachePostFailurePostServiceException, GetCachedPostFailurePostServiceException, \
+    DeletePostFailurePostServiceException
 from app.log.loggers.app_logger import log_exception
 from app.schemas.PostRequestsSchemas import CreatePostInsertDataSchema, GetPostResponseDataSchema, \
     CreatePostResponseDataSchema
@@ -170,12 +171,39 @@ class PostService:
     def get_post(self, post_uuid: uuid, cache_key: str = None):
         log.debug('Service is retrieving data for the post with uuid = %s.', post_uuid)
 
-        cache_res = self.get_post_from_cache_wt_key(cache_key)
-        log.debug(cache_res)
-        log.debug(type(cache_res))
+        if cache_key is not None:
+            log.debug('Service is searching in the cache for the post using its cache key %s.', cache_key)
+            cache_res = self.get_post_from_cache_wt_key(cache_key)
+            log.debug(cache_res)
+            log.debug(type(cache_res))
+        else:
+            cache_res = None
 
         if cache_res is None:
-            output_model = self.posts_repo.find_one(post_uuid)
+            log.debug('Service is searching in the cache for the post using its cache key %s.', cache_key)
+            cache_res = self.posts_cache.find_one_by_uuid(post_uuid)
+            log.debug(cache_res)
+            log.debug(type(cache_res))
+        else:
+            cache_res = None
+
+        if cache_res is None:
+            output_model = self.posts_repo.find_one_by_uuid(post_uuid)
+            if output_model is None:
+                status = False
+                data = {
+                    "err_msg": f"No model with the uuid {post_uuid} was found."
+                }
+                meta = {
+                    "completed": {
+                        "at": datetime.datetime.now().isoformat(),
+                    },
+                    "model": None
+                }
+                errors = {}
+
+                return self.service_response(status, data, errors, meta)
+
             log.debug("The retrieved model is:")
             log.debug(output_model.__dict__)
             log.debug("model.deleted_at = %s", output_model.deleted_at)
@@ -208,12 +236,7 @@ class PostService:
         }
         errors = {}
 
-        return self.service_response(
-            status,
-            data,
-            errors,
-            meta
-        )
+        return self.service_response(status, data, errors, meta)
 
     def get_post_from_cache_wt_key(self, cache_key: str):
         log.debug("Getting a post from the cache repository using it's cache key.")
@@ -286,35 +309,53 @@ class PostService:
             raise Exception("The service could not get all stored posts from the repo.")
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
     # Delete
+    def mark_post_as_deleted(self, post_uuid: uuid):
+        log.debug('Service is marking data as deleted for the post with uuid = %s.', post_uuid)
+
+        try:
+            output_model = self.posts_repo.mark_one_as_deleted_by_uuid(post_uuid)
+            log.debug("output_model = ")
+            log.debug(output_model)
+
+            return self.service_response(True, {}, {})
+        except Exception as e:
+            log_exception(log, e)
+            raise DeletePostFailurePostServiceException("The service could not delete a post from the posts repository.")
+
     def delete_post(self, post_uuid: uuid):
         log.debug('Service is deleting data for the post with uuid = %s.', post_uuid)
 
-        status = True
-        data = {}
-        errors: dict[Any, Any] = {}  # type: ignore
+        try:
+            output_model = self.posts_repo.delete_post_by_uuid(post_uuid)
+            log.debug("output_model = ")
+            log.debug(output_model)
 
-        return self.service_response(
-            status,
-            data,
-            errors
-        )
+            self.posts_cache.delete_post_by_uuid(post_uuid)
+
+            return self.service_response(True, {}, {})
+        except Exception as e:
+            log_exception(log, e)
+            raise DeletePostFailurePostServiceException("The service could not delete a post from the posts repository.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     def update_post(self, post_id, new_post_data):
-        # delete cache
 
         print(self.post_db[post_id])
         print(type(self.post_db[post_id]))
@@ -333,8 +374,6 @@ class PostService:
         )
 
     def patch_post(self, post_id, new_post_data):
-        # delete cache
-
         print(self.post_db[post_id])
         print(type(self.post_db[post_id]))
 

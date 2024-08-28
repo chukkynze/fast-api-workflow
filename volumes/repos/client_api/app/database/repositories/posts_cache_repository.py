@@ -1,6 +1,6 @@
-import json
 import logging
 from typing import Final
+
 from fastapi import Depends
 from pydantic import ValidationError
 from redis.exceptions import ConnectionError, AuthenticationError
@@ -9,7 +9,6 @@ from redis_om import NotFoundError
 from app.database.configs.dbs import get_redis_cache
 from app.database.models.ClientCache.PostsModel import PostsCacheModel
 from app.log.loggers.app_logger import log_exception
-
 
 log = logging.getLogger(__name__)
 
@@ -96,6 +95,20 @@ class PostsCacheRepository:
         log.debug("Checking if all posts have been previously cached.")
         cache_key = f"{self.KEY_GET_ALL}"
         return self.redis_cache.exists(cache_key)
+
+    @staticmethod
+    def delete_post_by_uuid(post_uuid):
+        log.debug("The cache repository is deleting a post using the uuid %s", post_uuid)
+        log.debug(post_uuid)
+        log.debug(type(post_uuid))
+
+        try:
+            deleted_cache_model =  PostsCacheModel.find(PostsCacheModel.uuid == post_uuid.hex).delete()
+            log.debug(deleted_cache_model)
+            log.debug(type(deleted_cache_model))
+            return deleted_cache_model
+        except NotFoundError as e:
+            log_exception(log, e)
 
 
 
