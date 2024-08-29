@@ -1,13 +1,14 @@
 import logging
 from functools import lru_cache
+
 from redis_om import get_redis_connection
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.config import config
 
+from app.config import get_app_env_config
 
 log = logging.getLogger(__name__)
-
+app_env_config = get_app_env_config()
 
 @lru_cache(maxsize=None)
 def get_redis_cache():
@@ -18,8 +19,8 @@ def get_redis_cache():
     # Note: the Redis maxmemory directive is used to limit the memory usage to a fixed amount.
     # See: https://redis.io/docs/latest/develop/reference/eviction/
     redis_client = get_redis_connection(
-        url=f"{config.REDIS_CACHE_DRIVERNAME}://{config.REDIS_CACHE_USERNAME}:{config.REDIS_CACHE_PASSWORD.get_secret_value()}@{config.REDIS_CACHE_HOST}:{config.REDIS_CACHE_PORT}",
-        db=config.REDIS_CACHE_PRIMARY_DB,
+        url=f"{app_env_config.REDIS_CACHE_DRIVERNAME}://{app_env_config.REDIS_CACHE_USERNAME}:{app_env_config.REDIS_CACHE_PASSWORD.get_secret_value()}@{app_env_config.REDIS_CACHE_HOST}:{app_env_config.REDIS_CACHE_PORT}",
+        db=app_env_config.REDIS_CACHE_PRIMARY_DB,
         encoding="utf8",
     )
     return redis_client
@@ -33,8 +34,8 @@ def get_redis_search():
     # Note: the Redis maxmemory directive is used to limit the memory usage to a fixed amount.
     # See: https://redis.io/docs/latest/develop/reference/eviction/
     redis_client = get_redis_connection(
-        url=f"{config.REDIS_SEARCH_DRIVERNAME}://{config.REDIS_SEARCH_USERNAME}:{config.REDIS_SEARCH_PASSWORD.get_secret_value()}@{config.REDIS_SEARCH_HOST}:{config.REDIS_SEARCH_PORT}",
-        db=config.REDIS_SEARCH_PRIMARY_DB,
+        url=f"{app_env_config.REDIS_SEARCH_DRIVERNAME}://{app_env_config.REDIS_SEARCH_USERNAME}:{app_env_config.REDIS_SEARCH_PASSWORD.get_secret_value()}@{app_env_config.REDIS_SEARCH_HOST}:{app_env_config.REDIS_SEARCH_PORT}",
+        db=app_env_config.REDIS_SEARCH_PRIMARY_DB,
         encoding="utf8",
     )
     return redis_client
@@ -46,14 +47,14 @@ def get_mysql_db():
     :return: A SqlAlchemy Session - sqlalchemy.orm.session.sessionmaker
     """
     mysql_engine = create_engine(
-        f"{config.MYSQLDB_DRIVERNAME}://{config.MYSQLDB_USERNAME}:{config.MYSQLDB_PASSWORD.get_secret_value()}@{config.MYSQLDB_HOST}:{config.MYSQLDB_PORT}/{config.MYSQLDB_DATABASE}",
-        echo=config.MYSQLDB_ECHO_LOG_LEVEL,
-        future=config.MYSQLDB_FUTURE
+        f"{app_env_config.MYSQLDB_DRIVERNAME}://{app_env_config.MYSQLDB_USERNAME}:{app_env_config.MYSQLDB_PASSWORD.get_secret_value()}@{app_env_config.MYSQLDB_HOST}:{app_env_config.MYSQLDB_PORT}/{app_env_config.MYSQLDB_DATABASE}",
+        echo=app_env_config.MYSQLDB_ECHO_LOG_LEVEL,
+        future=app_env_config.MYSQLDB_FUTURE
     )
     mysql_session = sessionmaker(
         bind=mysql_engine,
-        autocommit=config.MYSQLDB_SESSION_AUTOCOMMIT,
-        autoflush=config.MYSQLDB_SESSION_AUTOFLUSH,
+        autocommit=app_env_config.MYSQLDB_SESSION_AUTOCOMMIT,
+        autoflush=app_env_config.MYSQLDB_SESSION_AUTOFLUSH,
     )
 
     return mysql_session()
@@ -66,14 +67,14 @@ def get_postgres_db():
     """
     log.debug("Retrieving the postgres db connection.")
     postgres_engine = create_engine(
-        f"{config.POSTGRESDB_DRIVERNAME}://{config.POSTGRESDB_USERNAME}:{config.POSTGRESDB_PASSWORD.get_secret_value()}@{config.POSTGRESDB_HOST}:{config.POSTGRESDB_PORT}/{config.POSTGRESDB_DATABASE}",
-        echo=config.POSTGRESDB_ECHO_LOG_LEVEL,
-        future=config.POSTGRESDB_FUTURE
+        f"{app_env_config.POSTGRESDB_DRIVERNAME}://{app_env_config.POSTGRESDB_USERNAME}:{app_env_config.POSTGRESDB_PASSWORD.get_secret_value()}@{app_env_config.POSTGRESDB_HOST}:{app_env_config.POSTGRESDB_PORT}/{app_env_config.POSTGRESDB_DATABASE}",
+        echo=app_env_config.POSTGRESDB_ECHO_LOG_LEVEL,
+        future=app_env_config.POSTGRESDB_FUTURE
     )
     postgres_session = sessionmaker(
         bind=postgres_engine,
-        autocommit=config.POSTGRESDB_SESSION_AUTOCOMMIT,
-        autoflush=config.POSTGRESDB_SESSION_AUTOFLUSH,
+        autocommit=app_env_config.POSTGRESDB_SESSION_AUTOCOMMIT,
+        autoflush=app_env_config.POSTGRESDB_SESSION_AUTOFLUSH,
     )
 
     return postgres_session()

@@ -1,6 +1,9 @@
-from datetime import datetime
 import logging
-from app.config import config
+from datetime import datetime
+
+from app.config import get_app_env_config
+
+app_env_config = get_app_env_config()
 
 
 def get_app_logger():
@@ -10,7 +13,7 @@ def get_app_logger():
     fh.setFormatter(formatter)
 
     logging.basicConfig(
-        level=config.APP_LOG_LEVEL.value,
+        level=app_env_config.APP_LOG_LEVEL.value,
         #filename='./app/log/logs/app.log',
         #filemode='a',
         format='%(asctime)s - %(levelname)-8s - %(message)s',

@@ -1,17 +1,20 @@
 import logging
 import os
+
 from fastapi import FastAPI, Depends, status
+
+from app.config import get_app_env_config
 from app.dependencies import get_token_header
-from app.config import config
-from app.log.loggers.app_logger import get_app_logger
-from app.routers import PostsRouter
 from app.exceptions.AppExceptionHandlers import add_app_exception_handlers
 from app.exceptions.data.AppExceptions import add_data_exception_handlers
+from app.log.loggers.app_logger import get_app_logger
+from app.routers import PostsRouter
 
+app_env_config = get_app_env_config()
 os.environ["REDIS_OM_URL"] = "redis://client-redis-stack:6379"
 app = FastAPI(
-    title=config.APP_PROJECT_NAME,
-    description=config.APP_PROJECT_DESCRIPTION,
+    title=app_env_config.APP_PROJECT_NAME,
+    description=app_env_config.APP_PROJECT_DESCRIPTION,
     dependencies=[Depends(get_token_header)]
 )
 
@@ -34,11 +37,11 @@ async def root():
     output_data = {
         "company": "AcademyStack LLC",
         "author": "Chukwuma Nze",
-        "description": config.APP_PROJECT_DESCRIPTION,
+        "description": app_env_config.APP_PROJECT_DESCRIPTION,
     }
 
-    if config.APP_ENV in ["development", "dev"]:
-        output_data['settings'] = config.dict()
+    if app_env_config.APP_ENV in ["development", "dev"]:
+        output_data['settings'] = app_env_config.dict()
 
     output_meta = {
         "timestamp": "",
@@ -46,7 +49,7 @@ async def root():
 
     output = {
         "status": True,
-        "message": f"{config.APP_PROJECT_NAME} is up and running.",
+        "message": f"{app_env_config.APP_PROJECT_NAME} is up and running.",
         "data": output_data,
         "meta": output_meta,
     }

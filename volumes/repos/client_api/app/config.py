@@ -1,6 +1,8 @@
-from pydantic_settings import BaseSettings
-from pydantic.types import SecretStr
 from enum import Enum
+from functools import lru_cache
+
+from pydantic.types import SecretStr
+from pydantic_settings import BaseSettings
 
 
 class AppEnvironmentEnum(str, Enum):
@@ -89,5 +91,6 @@ class AppSettings(BaseSettings):
     REDIS_AI_PORT: int
     REDIS_AI_PRIMARY_DB: int
 
-
-config = AppSettings(_env_file="./.env")
+@lru_cache
+def get_app_env_config():
+    return AppSettings(_env_file="./.env")

@@ -1,10 +1,13 @@
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
-from alembic import context
-from app.config import config as envConfig
+from app.config import get_app_env_config
+
+app_env_config = get_app_env_config()
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -31,13 +34,13 @@ resource_identifier = config.config_ini_section # active config ini section is t
 match resource_identifier:
     case "clientdb":
         db_name = "clientdb"
-        conn_uri = f"{envConfig.MYSQLDB_DRIVERNAME}://{envConfig.MYSQLDB_USERNAME}:{envConfig.MYSQLDB_PASSWORD.get_secret_value()}@{envConfig.MYSQLDB_HOST}:{envConfig.MYSQLDB_PORT}/{envConfig.MYSQLDB_DATABASE}"
+        conn_uri = f"{app_env_config.MYSQLDB_DRIVERNAME}://{app_env_config.MYSQLDB_USERNAME}:{app_env_config.MYSQLDB_PASSWORD.get_secret_value()}@{app_env_config.MYSQLDB_HOST}:{app_env_config.MYSQLDB_PORT}/{app_env_config.MYSQLDB_DATABASE}"
     case "customerdb":
         db_name = "customerdb"
-        conn_uri = f"{envConfig.POSTGRESDB_DRIVERNAME}://{envConfig.POSTGRESDB_USERNAME}:{envConfig.POSTGRESDB_PASSWORD.get_secret_value()}@{envConfig.POSTGRESDB_HOST}:{envConfig.POSTGRESDB_PORT}/{envConfig.POSTGRESDB_DATABASE}"
+        conn_uri = f"{app_env_config.POSTGRESDB_DRIVERNAME}://{app_env_config.POSTGRESDB_USERNAME}:{app_env_config.POSTGRESDB_PASSWORD.get_secret_value()}@{app_env_config.POSTGRESDB_HOST}:{app_env_config.POSTGRESDB_PORT}/{app_env_config.POSTGRESDB_DATABASE}"
     case "clientcache":
         db_name = "clientcache"
-        conn_uri = f"{envConfig.REDIS_CACHE_DRIVERNAME}://{envConfig.REDIS_CACHE_USERNAME}:{envConfig.REDIS_CACHE_PASSWORD.get_secret_value()}@{envConfig.REDIS_CACHE_HOST}:{envConfig.REDIS_CACHE_PORT}"
+        conn_uri = f"{app_env_config.REDIS_CACHE_DRIVERNAME}://{app_env_config.REDIS_CACHE_USERNAME}:{app_env_config.REDIS_CACHE_PASSWORD.get_secret_value()}@{app_env_config.REDIS_CACHE_HOST}:{app_env_config.REDIS_CACHE_PORT}"
     case _:
         raise Exception("Why are you even here? Eh?!")
 
