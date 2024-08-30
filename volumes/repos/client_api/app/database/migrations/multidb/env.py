@@ -4,7 +4,7 @@ from alembic import context
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
-from app.config import get_app_env_config
+from config import get_app_env_config
 
 app_env_config = get_app_env_config()
 
