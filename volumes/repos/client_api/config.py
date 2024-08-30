@@ -1,3 +1,4 @@
+import os
 from enum import Enum
 from functools import lru_cache
 
@@ -93,4 +94,6 @@ class AppSettings(BaseSettings):
 
 @lru_cache
 def get_app_env_config():
-    return AppSettings(_env_file="./.env")
+    config = AppSettings(_env_file=os.path.join(os.path.dirname(__file__), ".env"))
+    return config
+

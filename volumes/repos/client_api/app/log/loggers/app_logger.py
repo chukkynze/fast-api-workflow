@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 
-from app.config import get_app_env_config
+from config import get_app_env_config
 
 app_env_config = get_app_env_config()
 
