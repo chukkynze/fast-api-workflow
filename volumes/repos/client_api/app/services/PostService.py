@@ -1,32 +1,10 @@
-mport datetime
-import json
-import logging
-import uuid
-from datetime import timezone
-from typing import Any
-
-from pydantic import ValidationError
-
-from app.database.models.CustomerData.PostsModel import PostsModel
-from app.database.repositories.posts_cache_repository import PostsCacheRepository
-from app.database.repositories.posts_repository import PostsRepository
-from app.exceptions.data.PostsExceptions import (
-    CreationException, DeletePostFailurePostServiceException, StorageException,
-    CacheException, ReadOneException, CacheKeyPostUuidMismatchException, ReadOneCachedException
-)
-from app.log.loggers.app_logger import log_exception
-from app.schemas.PostRequestsSchemas import CreatePostInsertDataSchema, GetPostResponseDataSchema, \
-    CreatePostResponseDataSchema
-from app.services.BaseAppService import ServiceResponse
 import datetime
 import json
 import logging
 import uuid
 from datetime import timezone
 from typing import Any
-
 from pydantic import ValidationError
-
 from app.database.models.CustomerData.PostsModel import PostsModel
 from app.database.repositories.posts_cache_repository import PostsCacheRepository
 from app.database.repositories.posts_repository import PostsRepository
@@ -35,9 +13,9 @@ from app.exceptions.data.PostsExceptions import (
     CacheException, ReadOneException, CacheKeyPostUuidMismatchException, ReadOneCachedException
 )
 from app.log.loggers.app_logger import log_exception
-from app.schemas.PostRequestsSchemas import CreatePostInsertDataSchema, GetPostResponseDataSchema, \
-    CreatePostResponseDataSchema
+from app.schemas.PostRequestsSchemas import CreatePostInsertDataSchema, GetPostResponseDataSchema, CreatePostResponseDataSchema
 from app.services.BaseAppService import ServiceResponse
+
 
 # Logging
 log = logging.getLogger(__name__)
