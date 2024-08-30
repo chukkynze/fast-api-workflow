@@ -1,9 +1,11 @@
 import logging
-from datetime import datetime
 import uuid
+from datetime import datetime
 from typing import Annotated
+
 from fastapi import APIRouter, Response, status
 from pydantic import UUID4, AfterValidator
+
 from app.schemas.PostRequestsSchemas import CreatePostRequestDataSchema, CreatePostInsertDataSchema, \
     UpdatePostDataSchema, PatchDataSchema
 from app.services.PostService import PostService
@@ -32,7 +34,7 @@ async def create_post(
         response: Response
 ):
     started_at = datetime.now().isoformat()
-    log.info("Hit: create post.")
+    log.info("HIT: create post.")
 
     insert_data = {
         "title": request_post_data.title,
@@ -40,7 +42,7 @@ async def create_post(
         'published': request_post_data.published if 'published' in request_post_data else True,
         'rating': request_post_data.rating if 'rating' in request_post_data else 0.0,
     }
-    log.debug("Processed validated request data")
+    log.debug("Formatted request data")
 
     # Process (and validate) insert data
     insert_post_data = CreatePostInsertDataSchema(**insert_data)
@@ -55,23 +57,23 @@ async def create_post(
                     "at": started_at,
                     "with": request_post_data
                 },
-                "response": {} | service_res["meta"]
+                "response": {} | service_res.meta
             }
 
-    if service_res["status"] is True:
+    if service_res.status is True:
         app_response = {
-            "status": service_res["status"],
+            "status": service_res.status,
             "message": "Successfully created post.",
-            "data": service_res["data"],
+            "data": service_res.data,
             "meta": meta
         }
     else:
         response.status_code = status.HTTP_400_BAD_REQUEST
         app_response = {
-            "status": service_res["status"],
+            "status": service_res.status,
             "message": "Could not create a post.",
-            "data": service_res["data"],
-            "errors": service_res["errors"],
+            "data": service_res.data,
+            "errors": service_res.errors,
             "meta": meta
         }
 
@@ -84,7 +86,7 @@ async def get_post(
         ckey: str | None = None,
 ):
     started_at = datetime.now().isoformat()
-    log.info("Hit: get post.")
+    log.info("HIT: get post.")
 
     service = PostService()
     service_res = service.get_post(uuid.UUID(str(post_uuid)), ckey)
@@ -98,23 +100,23 @@ async def get_post(
                     "ckey": ckey,
                 }
             },
-            "response": {} | service_res["meta"]
+            "response": {} | service_res.meta
         }
 
-    if service_res["status"] is True:
+    if service_res.status is True:
         app_response = {
-            "status": service_res["status"],
+            "status": service_res.status,
             "message": "Successfully retrieved the post.",
-            "data": service_res["data"],
+            "data": service_res.data,
             "meta": meta
         }
     else:
         response.status_code = status.HTTP_400_BAD_REQUEST
         app_response = {
-            "status": service_res["status"],
+            "status": service_res.status,
             "message": "Could not get the post.",
-            "data": service_res["data"],
-            "errors": service_res["errors"],
+            "data": service_res.data,
+            "errors": service_res.errors,
             "meta": meta
         }
 
@@ -122,12 +124,8 @@ async def get_post(
 
 @router.get("/", status_code=status.HTTP_200_OK)
 async def get_posts(response: Response):
-    """
-    :param response:
-    :return:
-    """
     started_at = datetime.now().isoformat()
-    log.debug("Hit: get posts")
+    log.debug("HIT: get posts")
 
     service = PostService()
     service_res = service.get_posts()
@@ -138,23 +136,23 @@ async def get_posts(response: Response):
                 "at": started_at,
                 "with": {}
             },
-            "response": {} | service_res["meta"]
+            "response": {} | service_res.meta
         }
 
-    if service_res["status"] is True:
+    if service_res.status is True:
         app_response = {
-            "status": service_res["status"],
-            "message": "Successfully retrieved all posts.",
-            "data": service_res["data"],
+            "status": service_res.status,
+            "message": "Successfully retrieved the post.",
+            "data": service_res.data,
             "meta": meta
         }
     else:
         response.status_code = status.HTTP_400_BAD_REQUEST
         app_response = {
-            "status": service_res["status"],
-            "message": "Could not get all post.",
-            "data": service_res["data"],
-            "errors": service_res["errors"],
+            "status": service_res.status,
+            "message": "Could not get the post.",
+            "data": service_res.data,
+            "errors": service_res.errors,
             "meta": meta
         }
 

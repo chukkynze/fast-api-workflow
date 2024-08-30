@@ -1,3 +1,23 @@
+mport datetime
+import json
+import logging
+import uuid
+from datetime import timezone
+from typing import Any
+
+from pydantic import ValidationError
+
+from app.database.models.CustomerData.PostsModel import PostsModel
+from app.database.repositories.posts_cache_repository import PostsCacheRepository
+from app.database.repositories.posts_repository import PostsRepository
+from app.exceptions.data.PostsExceptions import (
+    CreationException, DeletePostFailurePostServiceException, StorageException,
+    CacheException, ReadOneException, CacheKeyPostUuidMismatchException, ReadOneCachedException
+)
+from app.log.loggers.app_logger import log_exception
+from app.schemas.PostRequestsSchemas import CreatePostInsertDataSchema, GetPostResponseDataSchema, \
+    CreatePostResponseDataSchema
+from app.services.BaseAppService import ServiceResponse
 import datetime
 import json
 import logging
@@ -10,15 +30,18 @@ from pydantic import ValidationError
 from app.database.models.CustomerData.PostsModel import PostsModel
 from app.database.repositories.posts_cache_repository import PostsCacheRepository
 from app.database.repositories.posts_repository import PostsRepository
-from app.exceptions.data.PostsExceptions import CreatePostFailurePostServiceException, \
-    CachePostFailurePostServiceException, GetCachedPostFailurePostServiceException, \
-    DeletePostFailurePostServiceException
+from app.exceptions.data.PostsExceptions import (
+    CreationException, DeletePostFailurePostServiceException, StorageException,
+    CacheException, ReadOneException, CacheKeyPostUuidMismatchException, ReadOneCachedException
+)
 from app.log.loggers.app_logger import log_exception
 from app.schemas.PostRequestsSchemas import CreatePostInsertDataSchema, GetPostResponseDataSchema, \
     CreatePostResponseDataSchema
+from app.services.BaseAppService import ServiceResponse
 
 # Logging
 log = logging.getLogger(__name__)
+
 
 class PostService:
     """
@@ -29,6 +52,7 @@ class PostService:
     posts_cache_repo: PostsCacheRepository
 
     def __init__(self) -> None:
+        super().__init__()
         self.posts_repo = PostsRepository()
         self.posts_cache = PostsCacheRepository()
 
@@ -99,25 +123,28 @@ class PostService:
 
     # Create
     def create_post(self, new_post_data: CreatePostInsertDataSchema):
-        log.debug('Service is processing new post data.')
+        log.debug(f'The %s has initiated creating a post.', self.__class__.__name__)
 
         try:
-            log.debug("The Posts Service is attempting to send new post data to the repository.")
-            new_model = self.posts_repo.insert(**new_post_data.model_dump())
-            log.debug("The new model is:")
-            log.debug(new_model.__dict__)
+            stored_model = self.store_post_in_db(new_post_data)
 
-            cache_res = self.store_post_in_cache(new_model)
+            if stored_model is None:
+                raise Exception("Could not store the post in the db.")
+
+            log.debug('%s - The new model is:', self.__class__.__name__)
+            log.debug(stored_model.__dict__)
+
+            cached_model = self.store_post_in_cache(stored_model)
 
             output_data = CreatePostResponseDataSchema(
-                uuid=str(new_model.uuid),
-                title=new_model.title,
-                content=new_model.content,
-                rating=new_model.rating,
-                published=new_model.published,
-                created_at=new_model.created_at,
-                updated_at=new_model.updated_at,
-                deleted_at=None if new_model.deleted_at == "" else new_model.deleted_at,
+                uuid=str(stored_model.uuid),
+                title=stored_model.title,
+                content=stored_model.content,
+                rating=stored_model.rating,
+                published=stored_model.published,
+                created_at=stored_model.created_at,
+                updated_at=stored_model.updated_at,
+                deleted_at=None if stored_model.deleted_at == "" else stored_model.deleted_at,
             ).model_dump()
 
             status = True
@@ -127,141 +154,206 @@ class PostService:
                     "at": datetime.datetime.now().isoformat(),
                 },
                 "model": {
-                    "cache_key": cache_res.pk
+                    "cache_key": cached_model.pk
                 }
             }
             errors = {}
 
-            return self.service_response(
-                status,
-                data,
-                errors,
-                meta
+            return ServiceResponse(
+                status=status,
+                data=data,
+                errors=errors,
+                meta=meta,
             )
         except ValidationError as e:
             log.debug(e)
-            raise CreatePostFailurePostServiceException('Data from the repo is not acceptable to the posts service layer.')
+            raise CreationException('Data from the repo is not acceptable to the posts service layer.')
         except Exception as e:
             log_exception(log, e)
-            raise CreatePostFailurePostServiceException('Could not create a post in the posts service layer.')
+            raise CreationException('Could not create a post in the posts service layer.')
+
+    def store_post_in_db(self, new_post_data: CreatePostInsertDataSchema):
+        """
+        Store a single post in the database.
+        :param new_post_data: CreatePostInsertDataSchema
+        :return:
+        """
+        log.debug('%s - Storing a post in the database.', self.__class__.__name__)
+
+        try:
+            repo_res = self.posts_repo.insert(**new_post_data.model_dump())
+            log.debug('%s - Repo Response: ', self.__class__.__name__)
+            log.debug(repo_res.dict())
+
+            if not repo_res.status:
+                output_model = None
+            else:
+                log.debug('%s - Stored post: ', self.__class__.__name__)
+                log.debug(repo_res.data)
+                output_model = repo_res.data
+
+            return output_model
+
+        except Exception as e:
+            log_exception(log, e)
+            raise StorageException("The service could not store a post in the posts repository.")
 
     def store_post_in_cache(self, post: PostsModel):
         """
-        Store a single post in the cache for easy retrieval later.
+        Store a single post in the cache.
         Returns a PostsCacheModel including the pk which can be used to get the model later.
         There are other indexes on the PostsCacheModel available for searching
         :param post:
-        :return: PostsCacheModel
+        :return: PostsCacheModel | None
         """
-        log.debug("Storing a post in the cache repository.")
+        log.debug('%s - Storing a post in the cache.', self.__class__.__name__)
 
         try:
             cache_res = self.posts_cache.store_post(post.__dict__)
-            log.debug("Cache Results are: ")
-            log.debug(cache_res)
+            log.debug('%s - Repo Response: ', self.__class__.__name__)
+            log.debug(cache_res.dict())
 
-            return cache_res
+            if not cache_res.status:
+                output_model = None
+            else:
+                log.debug('%s - Cached post: ', self.__class__.__name__)
+                log.debug(cache_res.data['model'])
+                output_model = cache_res.data['model']
+
+            return output_model
 
         except Exception as e:
             log_exception(log, e)
-            raise CachePostFailurePostServiceException("The service could not store posts in the cache repository.")
+            raise CacheException("The service could not store posts in the cache repository.")
 
 
-    # Read
+
+
+
+    # Read One
     def get_post(self, post_uuid: uuid, cache_key: str = None):
-        log.debug('Service is retrieving data for the post with uuid = %s.', post_uuid)
-
-        if cache_key is not None:
-            log.debug('Service is searching in the cache for the post using its cache key %s.', cache_key)
-            cache_res = self.get_post_from_cache_wt_key(cache_key)
-            log.debug(cache_res)
-            log.debug(type(cache_res))
-        else:
-            cache_res = None
-
-        if cache_res is None:
-            log.debug('Service is searching in the cache for the post using its cache key %s.', cache_key)
-            cache_res = self.posts_cache.find_one_by_uuid(post_uuid)
-            log.debug(cache_res)
-            log.debug(type(cache_res))
-        else:
-            cache_res = None
-
-        if cache_res is None:
-            output_model = self.posts_repo.find_one_by_uuid(post_uuid)
-            if output_model is None:
-                status = False
-                data = {
-                    "err_msg": f"No model with the uuid {post_uuid} was found."
-                }
-                meta = {
-                    "completed": {
-                        "at": datetime.datetime.now().isoformat(),
-                    },
-                    "model": None
-                }
-                errors = {}
-
-                return self.service_response(status, data, errors, meta)
-
-            log.debug("The retrieved model is:")
-            log.debug(output_model.__dict__)
-            log.debug("model.deleted_at = %s", output_model.deleted_at)
-            log.debug(type(output_model.deleted_at))
-
-            cache_res = self.store_post_in_cache(output_model)
-        else:
-            output_model = cache_res
-
-        output_data = GetPostResponseDataSchema(
-            uuid=str(output_model.uuid),
-            title=output_model.title,
-            content=output_model.content,
-            rating=output_model.rating,
-            published=output_model.published,
-            created_at=output_model.created_at,
-            updated_at=output_model.updated_at,
-            deleted_at=None if output_model.deleted_at is None or 'NULL' else output_model.deleted_at,
-        ).model_dump()
-
-        status = True
-        data = output_data
-        meta = {
-            "completed": {
-                "at": datetime.datetime.now().isoformat(),
-            },
-            "model": {
-                "cache_key": cache_res.pk
-            }
-        }
-        errors = {}
-
-        return self.service_response(status, data, errors, meta)
-
-    def get_post_from_cache_wt_key(self, cache_key: str):
-        log.debug("Getting a post from the cache repository using it's cache key.")
+        log.debug('The %s is retrieving data for the post with uuid = %s.', self.__class__.__name__, post_uuid)
 
         try:
-            cache_res = self.posts_cache.find_one_wt_cache_key(cache_key)
-            log.debug("Cache Results are: ")
-            log.debug(cache_res)
+            # Check if the cache key provided will find a cached mode
+            # of course check if the returned model has the same uuid as the sent post uuid
+            cached_model = self.get_post_from_cache_wt_key(cache_key, post_uuid)
+
+            # if the cached model is still None, we get the model from the db
+            # of course we store the newly retrieved model in the cache as well
+            if cached_model is None:
+                repo_res = self.posts_repo.find_one_by_uuid(post_uuid)
+                log.debug('%s - Repo Response: ', self.__class__.__name__)
+                log.debug(repo_res.dict())
+
+                if repo_res.data is None:
+                    status = False
+                    data = {
+                        "err_msg": f"No model with the uuid {post_uuid} was found."
+                    }
+                    meta = {
+                        "completed": {
+                            "at": datetime.datetime.now().isoformat(),
+                        },
+                        "model": None
+                    }
+                    errors = {}
+
+                    return ServiceResponse(
+                        status=status,
+                        data=data,
+                        errors=errors,
+                        meta=meta
+                    )
+            else:
+                output_model = cached_model
+                log.debug("The retrieved cached model is:")
+                log.debug(output_model.__dict__)
+
+            output_data = GetPostResponseDataSchema(
+                uuid=str(output_model.uuid),
+                title=output_model.title,
+                content=output_model.content,
+                rating=output_model.rating,
+                published=output_model.published,
+                created_at=output_model.created_at,
+                updated_at=output_model.updated_at,
+                deleted_at=None if output_model.deleted_at is None or 'NULL' else output_model.deleted_at,
+            ).model_dump()
+
+            status = True
+            data = output_data
+            meta = {
+                "completed": {
+                    "at": datetime.datetime.now().isoformat(),
+                },
+                "model": {
+                    "cache_key": cached_model.pk
+                }
+            }
+            errors = {}
+
+            return ServiceResponse(
+                status=status,
+                data=data,
+                errors=errors,
+                meta=meta
+            )
+
+        except Exception as e:
+            log_exception(log, e)
+            raise ReadOneException(f'The {self.__class__.__name__} could not retrieve the post with uuid = {post_uuid} and cache key = {cache_key}.')
+
+
+
+
+    def get_post_from_cache_wt_key(self, cache_key: str | None, post_uuid: uuid):
+        """
+        Get a single post from the cache. Ensure the uuid of the retrieved post using the cache key
+        matches the uuid sent as an argument from the request
+        :param post_uuid:
+        :param cache_key:
+        :return: PostsCacheModel | None
+        """
+        log.debug('%s - Retrieving a post from the cache.', self.__class__.__name__)
+
+        try:
+
+            if cache_key is None:
+                log.debug("Cache key is None.")
+                cache_res = None
+            else:
+                log.debug('Service is searching in the cache for the post using its cache key %s.', cache_key)
+                repo_res = self.posts_cache.find_one_wt_cache_key(cache_key)
+                log.debug('%s - Repo Response: ', self.__class__.__name__)
+                log.debug(repo_res.dict())
+
+                log.debug("UUID from the request: %s", post_uuid)
+                log.debug("UUID from the cached model: %s", repo_res.data['model'].uuid)
+
+                if repo_res.data['model'].uuid != str(post_uuid):
+                    raise CacheKeyPostUuidMismatchException(f"The post uuid retrieved from the model found with the cache key does not match the post uuid sent in the request.")
+                else:
+                    cache_res = repo_res.data['model']
+                    log.debug("Cache Results are: ")
+                    log.debug(cache_res)
+                    log.debug(type(cache_res))
 
             return cache_res
 
         except Exception as e:
             log_exception(log, e)
-            raise GetCachedPostFailurePostServiceException("The service could not get a post from the cache repository.")
+            raise ReadOneCachedException("The service could not get a post from the cache repository.")
 
     def get_posts(self):
-        log.debug('Service is getting all posts.')
+        log.debug('The %s is retrieving all posts.', self.__class__.__name__)
 
-        cached_posts = self.posts_cache.find_all()
-        log.debug("The posts service has received all cached posts from the cache repository.")
-        log.debug(cached_posts)
-        log.debug(type(cached_posts))
+        repo_res = self.posts_cache.find_all()
+        log.debug('%s - Repo Response: ', self.__class__.__name__)
+        log.debug(repo_res.dict())
 
-        if len(cached_posts) == 0:
-            log.debug("No posts exist in cache. Retrieving from the repo instead.")
+        if repo_res.meta['count'] == 0:
+            log.debug('%s - No posts exist in cache. Retrieving from the repo instead.', self.__class__.__name__)
             posts = self.get_posts_from_repo()
             log.debug("Retrieved all posts from the repo.")
             log.debug(posts)
@@ -269,7 +361,7 @@ class PostService:
 
         else:
             posts = []
-            for cached_post in cached_posts:
+            for cached_post in repo_res.data:
                 cleaned_post = GetPostResponseDataSchema(
                     uuid=cached_post.uuid,
                     title=cached_post.title,
@@ -293,7 +385,7 @@ class PostService:
                 "total_posts": len(posts)
             }
         }
-        return self.service_response(
+        return ServiceResponse(
             status=status,
             data=data,
             errors=errors,
@@ -303,10 +395,19 @@ class PostService:
     def get_posts_from_repo(self):
         log.debug("Retrieving posts from the repo.")
         try:
-            return self.posts_repo.find_all()
+            return self.posts_repo.find_all().data
         except Exception as e:
             log_exception(log, e)
             raise Exception("The service could not get all stored posts from the repo.")
+
+
+
+
+
+
+
+
+
 
 
     # Delete

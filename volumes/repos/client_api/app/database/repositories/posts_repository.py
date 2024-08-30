@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.database.configs.dbs import get_mysql_db, get_postgres_db
 from app.database.models.CustomerData.PostsModel import PostsModel
-from app.exceptions.data.PostsExceptions import PostsRepositoryInsertException
+from app.database.repositories.BaseAppRepository import RepoResponse
+from app.exceptions.data.PostsExceptions import InsertException
 from app.log.loggers.app_logger import log_exception
 
 # Logging
@@ -17,6 +18,7 @@ class PostsRepository:
     postgresdb: Session = Depends(get_postgres_db)
 
     def __init__(self) -> None:
+        super().__init__()
         self.mysqldb = get_mysql_db()
         self.postgresdb = get_postgres_db()
 
@@ -29,51 +31,61 @@ class PostsRepository:
             published: bool,
     ):
         """
-        this will break the find_all cache
-        but in the service?
-        :return:
+        Also save, store
+        :return: RepoResponse
         """
 
-        log.debug("Repository has received data for a new post.")
+        log.debug('%s - Received data for a new post.', self.__class__.__name__)
         # log.debug("title = %s", title)
         # log.debug("content = %s", content)
         # log.debug("rating = %s", rating)
         # log.debug("published = %s", published)
 
-        new_post = PostsModel(
-            title=title,
-            content=content,
-            rating=rating,
-            published=published
-        )
-        log.debug("Created a posts model with the new post data.")
-        # log.debug("new_post title = %s", new_post.title)
-        # log.debug("new_post content = %s", new_post.content)
-        # log.debug("new_post rating = %s", new_post.rating)
-        # log.debug("new_post published = %s", new_post.published)
-
         try:
-            log.debug("Trying to add and commit to the postgres db.")
-            self.postgresdb.add(new_post)
-            self.postgresdb.commit()
-            self.postgresdb.refresh(new_post)
+            new_model = PostsModel(
+                title=title,
+                content=content,
+                rating=rating,
+                published=published
+            )
+            log.debug('%s - Created a posts model with the new post data.', self.__class__.__name__)
+            # log.debug("new_model title = %s", new_model.title)
+            # log.debug("new_model content = %s", new_model.content)
+            # log.debug("new_model rating = %s", new_model.rating)
+            # log.debug("new_model published = %s", new_model.published)
 
-            return new_post
+            self.postgresdb.add(new_model)
+            self.postgresdb.commit()
+            self.postgresdb.refresh(new_model)
+            log.debug('%s - Added and commited to the postgres db.', self.__class__.__name__)
+
+            return RepoResponse(
+                status=True,
+                data=new_model,
+                errors={},
+                meta={},
+            )
 
         except Exception as e:
             log_exception(log, e)
-            raise PostsRepositoryInsertException("The posts repository could not create a new post")
+            raise InsertException("The posts repository could not insert a post")
 
 
     def find_all(self):
         """
         alias for get_all
         alias for list
-        :return:
+        :return: RepoResponse
         """
         try:
             posts = self.postgresdb.query(PostsModel).filter(PostsModel.deleted_at == None).all()
-            return posts
+
+            return RepoResponse(
+                status=True,
+                data=posts,
+                errors={},
+                meta={},
+            )
         except Exception as e:
             log.debug(e)
             log_exception(log, e)
@@ -89,7 +101,12 @@ class PostsRepository:
                     )
                     .first())
 
-            return post
+            return RepoResponse(
+                status=True,
+                data=post,
+                errors={},
+                meta={},
+            )
         except Exception as e:
             log.debug(e)
             log_exception(log, e)
