@@ -20,6 +20,7 @@ services:
       # REDIS_OM_URL: redis://[[username]:[password]]@localhost:6379/[database number]
       REDIS_OM_URL: redis://client-redis-stack:6379
       APP_ENV: development
+      PYTHONPATH: "$${PYTHONPATH}:/var/www/json"
 #    develop:
 #      watch:
 #        - action: sync
