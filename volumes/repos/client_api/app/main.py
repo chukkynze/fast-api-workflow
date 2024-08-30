@@ -1,17 +1,18 @@
+import datetime
 import logging
 import os
 
 from fastapi import FastAPI, Depends, status
 
-from app.config import get_app_env_config
 from app.dependencies import get_token_header
 from app.exceptions.AppExceptionHandlers import add_app_exception_handlers
 from app.exceptions.data.AppExceptions import add_data_exception_handlers
 from app.log.loggers.app_logger import get_app_logger
 from app.routers import PostsRouter
+from config import get_app_env_config
 
 app_env_config = get_app_env_config()
-os.environ["REDIS_OM_URL"] = "redis://client-redis-stack:6379"
+
 app = FastAPI(
     title=app_env_config.APP_PROJECT_NAME,
     description=app_env_config.APP_PROJECT_DESCRIPTION,
@@ -44,7 +45,17 @@ async def root():
         output_data['settings'] = app_env_config.dict()
 
     output_meta = {
-        "timestamp": "",
+        "timestamp": datetime.datetime.now().isoformat(),
+        "environment": app_env_config.APP_ENV,
+        "commit_hash": os.getenv("COMMIT_HASH", "N/A"),
+        "build_tag": os.getenv("BUILD_TAG", "N/A"),
+        "build_url": os.getenv("BUILD_URL", "N/A"),
+        "app_version": app_env_config.APP_VERSION,
+        "os": {
+            "system": os.name,
+            "release": os.uname().release,
+            "version": os.uname().version,
+        }
     }
 
     output = {
