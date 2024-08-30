@@ -5,7 +5,7 @@ from redis_om import get_redis_connection
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.config import get_app_env_config
+from config import get_app_env_config
 
 log = logging.getLogger(__name__)
 app_env_config = get_app_env_config()
@@ -18,27 +18,12 @@ def get_redis_cache():
     """
     # Note: the Redis maxmemory directive is used to limit the memory usage to a fixed amount.
     # See: https://redis.io/docs/latest/develop/reference/eviction/
-    redis_client = get_redis_connection(
-        url=f"{app_env_config.REDIS_CACHE_DRIVERNAME}://{app_env_config.REDIS_CACHE_USERNAME}:{app_env_config.REDIS_CACHE_PASSWORD.get_secret_value()}@{app_env_config.REDIS_CACHE_HOST}:{app_env_config.REDIS_CACHE_PORT}",
+    # REDIS_OM_URL overrides this
+    return get_redis_connection(
+        # url=f"{app_env_config.REDIS_CACHE_DRIVERNAME}://{app_env_config.REDIS_CACHE_USERNAME}:{app_env_config.REDIS_CACHE_PASSWORD.get_secret_value()}@{app_env_config.REDIS_CACHE_HOST}:{app_env_config.REDIS_CACHE_PORT}",
         db=app_env_config.REDIS_CACHE_PRIMARY_DB,
         encoding="utf8",
     )
-    return redis_client
-
-@lru_cache(maxsize=None)
-def get_redis_search():
-    """
-    Retrieving the redis search connection.
-    :return:
-    """
-    # Note: the Redis maxmemory directive is used to limit the memory usage to a fixed amount.
-    # See: https://redis.io/docs/latest/develop/reference/eviction/
-    redis_client = get_redis_connection(
-        url=f"{app_env_config.REDIS_SEARCH_DRIVERNAME}://{app_env_config.REDIS_SEARCH_USERNAME}:{app_env_config.REDIS_SEARCH_PASSWORD.get_secret_value()}@{app_env_config.REDIS_SEARCH_HOST}:{app_env_config.REDIS_SEARCH_PORT}",
-        db=app_env_config.REDIS_SEARCH_PRIMARY_DB,
-        encoding="utf8",
-    )
-    return redis_client
 
 @lru_cache(maxsize=None)
 def get_mysql_db():
