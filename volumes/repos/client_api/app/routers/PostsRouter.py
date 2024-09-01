@@ -164,7 +164,7 @@ async def delete_post(
         response: Response
 ):
     started_at = datetime.now().isoformat()
-    log.info("Hit: delete post.")
+    log.info("HIT: delete post.")
 
     service = PostService()
     service_res = service.delete_post(uuid.UUID(str(post_uuid)))
@@ -177,18 +177,18 @@ async def delete_post(
                     "post_uuid": post_uuid,
                 }
             },
-            "response": {} | service_res["meta"]
+            "response": {} | service_res.meta
         }
 
-    if service_res["status"] is True:
+    if service_res.status is True:
         app_response = Response(status_code=status.HTTP_204_NO_CONTENT)
     else:
         response.status_code = status.HTTP_400_BAD_REQUEST
         app_response = {
-            "status": service_res["status"],
+            "status": service_res.status,
             "message": "Could not delete the post.",
-            "data": service_res["data"],
-            "errors": service_res["errors"],
+            "data": service_res.data,
+            "errors": service_res.errors,
             "meta": meta
         }
 

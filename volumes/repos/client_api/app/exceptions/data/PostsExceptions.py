@@ -116,7 +116,7 @@ class StorageException(Exception):
         self.message = message
 
 
-class DeletePostFailurePostServiceException(Exception):
+class DeleteException(Exception):
     def __init__(self, message: str):
         self.message = message
 

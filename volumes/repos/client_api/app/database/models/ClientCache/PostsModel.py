@@ -1,6 +1,4 @@
-import datetime
-
-from redis_om import Field, HashModel
+from redis_om import Field, HashModel, Migrator
 
 
 class PostsCacheModel(HashModel):
@@ -13,3 +11,5 @@ class PostsCacheModel(HashModel):
     created_at: str
     updated_at: str
     deleted_at: str
+
+Migrator().run()

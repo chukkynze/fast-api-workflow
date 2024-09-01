@@ -9,8 +9,9 @@ from app.database.models.CustomerData.PostsModel import PostsModel
 from app.database.repositories.posts_cache_repository import PostsCacheRepository
 from app.database.repositories.posts_repository import PostsRepository
 from app.exceptions.data.PostsExceptions import (
-    CreationException, DeletePostFailurePostServiceException, StorageException,
-    CacheException, ReadOneException, CacheKeyPostUuidMismatchException, ReadOneCachedException
+    CreationException, DeleteException, StorageException,
+    CacheException, ReadOneException, CacheKeyPostUuidMismatchException,
+    ReadOneCachedException
 )
 from app.log.loggers.app_logger import log_exception
 from app.schemas.PostRequestsSchemas import CreatePostInsertDataSchema, GetPostResponseDataSchema, CreatePostResponseDataSchema
@@ -93,10 +94,6 @@ class PostService:
                 }
 
         return cacheable_data
-
-
-
-
 
 
     # Create
@@ -195,8 +192,8 @@ class PostService:
                 output_model = None
             else:
                 log.debug('%s - Cached post: ', self.__class__.__name__)
-                log.debug(cache_res.data['model'])
-                output_model = cache_res.data['model']
+                log.debug(cache_res.data)
+                output_model = cache_res.data
 
             return output_model
 
@@ -204,11 +201,7 @@ class PostService:
             log_exception(log, e)
             raise CacheException("The service could not store posts in the cache repository.")
 
-
-
-
-
-    # Read One
+    # Read
     def get_post(self, post_uuid: uuid, cache_key: str = None):
         log.debug('The %s is retrieving data for the post with uuid = %s.', self.__class__.__name__, post_uuid)
 
@@ -243,6 +236,10 @@ class PostService:
                         errors=errors,
                         meta=meta
                     )
+                else:
+                    output_model = repo_res.data
+                    cached_model = self.store_post_in_cache(output_model)
+
             else:
                 output_model = cached_model
                 log.debug("The retrieved cached model is:")
@@ -281,9 +278,6 @@ class PostService:
         except Exception as e:
             log_exception(log, e)
             raise ReadOneException(f'The {self.__class__.__name__} could not retrieve the post with uuid = {post_uuid} and cache key = {cache_key}.')
-
-
-
 
     def get_post_from_cache_wt_key(self, cache_key: str | None, post_uuid: uuid):
         """
@@ -380,15 +374,35 @@ class PostService:
 
 
 
-
-
-
-
-
-
-
-
     # Delete
+    def delete_post(self, post_uuid: uuid):
+        log.debug('The %s is deleting the post with uuid = %s.', self.__class__.__name__, post_uuid)
+
+        try:
+            repo_res = self.posts_repo.delete_post_by_uuid(post_uuid)
+            log.debug('%s - Repo Response: ', self.__class__.__name__)
+            log.debug(repo_res.dict())
+
+            output_model = repo_res.data
+            log.debug("output_model = ")
+            log.debug(output_model)
+
+            self.posts_cache.delete_post_by_uuid(post_uuid)
+
+            return ServiceResponse(
+                status=True,
+                data={},
+                errors={},
+                meta={}
+            )
+        except Exception as e:
+            log_exception(log, e)
+            raise DeleteException("The service could not delete a post from the posts repository.")
+
+
+
+
+    # Update
     def mark_post_as_deleted(self, post_uuid: uuid):
         log.debug('Service is marking data as deleted for the post with uuid = %s.', post_uuid)
 
@@ -401,38 +415,6 @@ class PostService:
         except Exception as e:
             log_exception(log, e)
             raise DeletePostFailurePostServiceException("The service could not delete a post from the posts repository.")
-
-    def delete_post(self, post_uuid: uuid):
-        log.debug('Service is deleting data for the post with uuid = %s.', post_uuid)
-
-        try:
-            output_model = self.posts_repo.delete_post_by_uuid(post_uuid)
-            log.debug("output_model = ")
-            log.debug(output_model)
-
-            self.posts_cache.delete_post_by_uuid(post_uuid)
-
-            return self.service_response(True, {}, {})
-        except Exception as e:
-            log_exception(log, e)
-            raise DeletePostFailurePostServiceException("The service could not delete a post from the posts repository.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     def update_post(self, post_id, new_post_data):
 

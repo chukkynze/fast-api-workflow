@@ -6,7 +6,7 @@ from pydantic import BaseModel
 class ServiceResponse(BaseModel):
     status: bool
     message: Optional[str] = None
-    data: dict | list[Any]
+    data: dict | int | list[Any]
     errors: dict
     meta: Optional[dict] = None
 

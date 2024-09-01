@@ -6,7 +6,7 @@ from pydantic import BaseModel
 class RepoResponse(BaseModel):
     status: bool
     message: Optional[str] = None
-    data: dict | list[Any]
+    data: Any
     errors: dict
     meta: Optional[dict] = None
 

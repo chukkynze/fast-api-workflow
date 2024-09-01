@@ -124,7 +124,12 @@ class PostsRepository:
                 .delete(synchronize_session=False))
             self.postgresdb.commit()
 
-            return post
+            return RepoResponse(
+                status=True,
+                data=post,
+                errors={},
+                meta={},
+            )
 
         except Exception as e:
             log.debug(e)

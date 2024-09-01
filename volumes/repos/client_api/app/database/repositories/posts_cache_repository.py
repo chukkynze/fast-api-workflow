@@ -62,16 +62,14 @@ class PostsCacheRepository:
                 updated_at=post["updated_at"].isoformat(),
                 deleted_at="NULL" if post["deleted_at"] is None else post["deleted_at"].isoformat(),
             )
-            new_cache_post.save()
             new_cache_post.expire(self.MODEL_EXPIRATION_SECONDS)
+            new_cache_post.save()
             log.debug('%s - The post was successfully cached.', self.__class__.__name__)
             log.debug(new_cache_post)
 
             return RepoResponse(
                 status=True,
-                data={
-                    "model": new_cache_post,
-                },
+                data=new_cache_post,
                 meta={},
                 errors={},
             )
@@ -138,23 +136,25 @@ class PostsCacheRepository:
             log_exception(log, e)
             raise Exception("Could not get all posts for the current API user.")
 
-
-    def do_cached_posts_exist(self) -> bool:
-        log.debug("Checking if all posts have been previously cached.")
-        cache_key = f"{self.KEY_GET_ALL}"
-        return self.redis_cache.exists(cache_key)
-
-    @staticmethod
-    def delete_post_by_uuid(post_uuid):
-        log.debug("The cache repository is deleting a post using the uuid %s", post_uuid)
+    def delete_post_by_uuid(self, post_uuid):
+        log.debug("%s - Deleting a post with the uuid %s.", self.__class__.__name__, post_uuid)
         log.debug(post_uuid)
         log.debug(type(post_uuid))
 
         try:
-            deleted_cache_model =  PostsCacheModel.find(PostsCacheModel.uuid == post_uuid.hex).delete()
-            log.debug(deleted_cache_model)
-            log.debug(type(deleted_cache_model))
-            return deleted_cache_model
+            deleted_cache_model =  (
+                PostsCacheModel
+                .find(PostsCacheModel.uuid == str(post_uuid))
+                .delete()
+            )
+
+            return RepoResponse(
+                status=True,
+                data=deleted_cache_model,
+                meta={},
+                errors={},
+            )
+
         except NotFoundError as e:
             log_exception(log, e)
 
