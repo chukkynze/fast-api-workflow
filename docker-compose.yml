@@ -18,7 +18,10 @@ services:
         - GIT_EMAIL=${GIT_EMAIL}
     environment:
       # REDIS_OM_URL: redis://[[username]:[password]]@localhost:6379/[database number]
-      REDIS_OM_URL: redis://client-redis-stack:6379
+      # Note: Indexing only works for data stored in Redis logical database 0. If you are using a
+      # different database number when connecting to Redis, you can expect the code to raise a MigrationError
+      # when you run the migrator.
+      REDIS_OM_URL: redis://client-redis-stack:6379/0
       APP_ENV: development
       PYTHONPATH: "$${PYTHONPATH}:/var/www/json"
 #    develop:
@@ -56,6 +59,7 @@ services:
     environment:
       - REDIS_ARGS="--requirepass ${CLIENT_REDIS_PASSWORD}"
       #- REDISTIMESERIES_ARGS="RETENTION_POLICY=20"
+      # RedisSearch is needed by Redis OM for rich query expressions and embedded models
       #- REDISEARCH_ARGS=""
       #- REDISJSON_ARGS=""
       #- REDISGRAPH_ARGS=""
