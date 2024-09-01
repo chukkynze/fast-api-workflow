@@ -18,7 +18,10 @@ def get_redis_cache():
     """
     # Note: the Redis maxmemory directive is used to limit the memory usage to a fixed amount.
     # See: https://redis.io/docs/latest/develop/reference/eviction/
-    # REDIS_OM_URL overrides this
+    # REDIS_OM_URL overrides the client no matter what
+    # Note: Indexing only works for data stored in Redis logical database 0. If you are using a
+    # different database number when connecting to Redis, you can expect the code to raise a
+    # MigrationError when you run the migrator.
     return get_redis_connection(
         # url=f"{app_env_config.REDIS_CACHE_DRIVERNAME}://{app_env_config.REDIS_CACHE_USERNAME}:{app_env_config.REDIS_CACHE_PASSWORD.get_secret_value()}@{app_env_config.REDIS_CACHE_HOST}:{app_env_config.REDIS_CACHE_PORT}",
         db=app_env_config.REDIS_CACHE_PRIMARY_DB,
