@@ -84,11 +84,13 @@ class PostsCacheRepository:
         log.debug("%s - Retrieving a post using the cache key %s.", self.__class__.__name__, cache_key)
 
         try:
+            cached_post = PostsCacheModel.get(cache_key)
+            log.debug(cached_post)
+            log.debug(type(cached_post))
+
             return RepoResponse(
                 status=True,
-                data={
-                    "model": PostsCacheModel.get(cache_key),
-                },
+                data=cached_post,
                 meta={},
                 errors={},
             )
@@ -155,6 +157,25 @@ class PostsCacheRepository:
                 errors={},
             )
 
+        except NotFoundError as e:
+            log_exception(log, e)
+
+    def find_one_wt_uuid(self, post_uuid):
+        log.debug("%s - Retrieving a post using the uuid %s.", self.__class__.__name__, post_uuid)
+
+        try:
+            cache_model = (
+                PostsCacheModel
+                .find(PostsCacheModel.uuid == str(post_uuid))
+                .first()
+            )
+
+            return RepoResponse(
+                status=True,
+                data=cache_model,
+                meta={},
+                errors={},
+            )
         except NotFoundError as e:
             log_exception(log, e)
 

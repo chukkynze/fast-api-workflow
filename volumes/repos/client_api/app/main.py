@@ -3,7 +3,7 @@ import logging
 import os
 
 from fastapi import FastAPI, Depends, status
-
+from redis_om import Migrator
 from app.dependencies import get_token_header
 from app.exceptions.AppExceptionHandlers import add_app_exception_handlers
 from app.exceptions.data.AppExceptions import add_data_exception_handlers
@@ -29,6 +29,9 @@ add_data_exception_handlers(app)
 
 # Routes
 app.include_router(PostsRouter.router)
+
+# Redis Cache models
+Migrator().run()
 
 
 @app.get("/", status_code=status.HTTP_200_OK)

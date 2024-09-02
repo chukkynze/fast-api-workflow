@@ -238,7 +238,12 @@ class PostService:
                     )
                 else:
                     output_model = repo_res.data
-                    cached_model = self.store_post_in_cache(output_model)
+                    # Use uuid to find a cached model first. If that doesn't exist, then store
+                    # otherwise u create dup data with different cache keys
+                    cached_model = self.get_post_from_cache_wt_uuid(post_uuid)
+
+                    if cached_model is not None or cached_model == 0:
+                        cached_model = self.store_post_in_cache(output_model)
 
             else:
                 output_model = cached_model
@@ -287,7 +292,7 @@ class PostService:
         :param cache_key:
         :return: PostsCacheModel | None
         """
-        log.debug('%s - Retrieving a post from the cache.', self.__class__.__name__)
+        log.debug('%s - Retrieving a post from the cache using its cache key.', self.__class__.__name__)
 
         try:
 
@@ -301,17 +306,31 @@ class PostService:
                 log.debug(repo_res.dict())
 
                 log.debug("UUID from the request: %s", post_uuid)
-                log.debug("UUID from the cached model: %s", repo_res.data['model'].uuid)
+                log.debug("UUID from the cached model: %s", repo_res.data.uuid)
 
-                if repo_res.data['model'].uuid != str(post_uuid):
+                if repo_res.data.uuid != str(post_uuid):
                     raise CacheKeyPostUuidMismatchException(f"The post uuid retrieved from the model found with the cache key does not match the post uuid sent in the request.")
                 else:
-                    cache_res = repo_res.data['model']
+                    cache_res = repo_res.data
                     log.debug("Cache Results are: ")
                     log.debug(cache_res)
                     log.debug(type(cache_res))
 
             return cache_res
+
+        except Exception as e:
+            log_exception(log, e)
+            raise ReadOneCachedException("The service could not get a post from the cache repository.")
+
+    def get_post_from_cache_wt_uuid(self, post_uuid: uuid):
+        log.debug('%s - Retrieving a post from the cache using its uuid.', self.__class__.__name__)
+
+        try:
+            repo_res = self.posts_cache.find_one_wt_uuid(post_uuid)
+            log.debug('%s - Repo Response: ', self.__class__.__name__)
+            log.debug(repo_res.dict())
+
+            return repo_res.data
 
         except Exception as e:
             log_exception(log, e)
