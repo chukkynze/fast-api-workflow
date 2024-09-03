@@ -10,4 +10,4 @@ alembic -n customerdb upgrade head
 # Seeders
 cd app/database/seeders || exit
 pwd
-python seeder.py test
+python3 seeder.py dev
