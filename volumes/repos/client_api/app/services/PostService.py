@@ -5,6 +5,8 @@ import uuid
 from datetime import timezone
 from typing import Any
 from pydantic import ValidationError
+
+from app.database.models.ClientCache.PostsModel import PostsCacheModel
 from app.database.models.CustomerData.PostsModel import PostsModel
 from app.database.repositories.posts_cache_repository import PostsCacheRepository
 from app.database.repositories.posts_repository import PostsRepository
@@ -242,7 +244,7 @@ class PostService:
                     # otherwise u create dup data with different cache keys
                     cached_model = self.get_post_from_cache_wt_uuid(post_uuid)
 
-                    if cached_model is not None or cached_model == 0:
+                    if cached_model is None or cached_model == 0:
                         cached_model = self.store_post_in_cache(output_model)
 
             else:
@@ -322,15 +324,15 @@ class PostService:
             log_exception(log, e)
             raise ReadOneCachedException("The service could not get a post from the cache repository.")
 
-    def get_post_from_cache_wt_uuid(self, post_uuid: uuid):
+    def get_post_from_cache_wt_uuid(self, post_uuid: uuid)-> PostsCacheModel | None:
         log.debug('%s - Retrieving a post from the cache using its uuid.', self.__class__.__name__)
 
         try:
             repo_res = self.posts_cache.find_one_wt_uuid(post_uuid)
             log.debug('%s - Repo Response: ', self.__class__.__name__)
-            log.debug(repo_res.dict())
+            log.debug(type(repo_res))
 
-            return repo_res.data
+            return None if repo_res is None else repo_res.data
 
         except Exception as e:
             log_exception(log, e)
