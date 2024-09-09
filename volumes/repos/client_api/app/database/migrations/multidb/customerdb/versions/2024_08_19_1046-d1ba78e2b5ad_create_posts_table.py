@@ -18,11 +18,12 @@ down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
+posts_id_seq = sa.Sequence('posts_id_seq', start=1)
 
 def upgrade() -> None:
     op.create_table(
         'posts',
-        sa.Column('id', sa.Integer, primary_key=True, index=True, nullable=False),
+        sa.Column('id', sa.Integer, posts_id_seq , primary_key=True, index=True, nullable=False),
             sa.Column('uuid', sa.Uuid(as_uuid=True), nullable=False, unique=True,  default=uuid.uuid4),
             sa.Column('title'  , sa.String(length=100), index=True, nullable=False),
             sa.Column('content', sa.Text, nullable=False),
@@ -35,4 +36,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.execute(sa.schema.DropSequence(posts_id_seq))
     op.drop_table('posts')

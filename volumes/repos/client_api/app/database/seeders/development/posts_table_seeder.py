@@ -4,6 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from app.database.configs.dbs import get_postgres_db_engine
 from app.database.factories.PostsFactory import PostsFactory
 
+
 Base = declarative_base()
 env = sys.argv[1]
 
@@ -14,6 +15,7 @@ def posts_table_seeder():
     with get_postgres_db_engine().connect() as connection:
         connection.execute(text("TRUNCATE TABLE posts"))
         connection.commit()
+        connection.execute(text("SELECT setval('posts_id_seq', max(id)+1) FROM posts;"))
 
     PostsFactory.create_batch(5)
 

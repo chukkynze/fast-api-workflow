@@ -98,12 +98,6 @@ class PostsCacheRepository:
             log_exception(log, e)
 
 
-
-
-
-
-
-
     def find_all(self):
         """
         Get all posts

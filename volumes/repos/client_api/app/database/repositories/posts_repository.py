@@ -2,7 +2,7 @@ import logging
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
-
+from sqlalchemy.sql import text
 from app.database.configs.dbs import get_mysql_db, get_postgres_db
 from app.database.models.CustomerData.PostsModel import PostsModel
 from app.database.repositories.BaseAppRepository import RepoResponse
@@ -42,6 +42,10 @@ class PostsRepository:
         # log.debug("published = %s", published)
 
         try:
+            tbl_name = PostsModel.__tablename__
+            seq_text = text("SELECT setval('posts_id_seq', max(id)+1) FROM posts;")
+            self.postgresdb.execute(seq_text)
+
             new_model = PostsModel(
                 title=title,
                 content=content,
@@ -54,6 +58,7 @@ class PostsRepository:
             # log.debug("new_model rating = %s", new_model.rating)
             # log.debug("new_model published = %s", new_model.published)
 
+            self.postgresdb.flush()
             self.postgresdb.add(new_model)
             self.postgresdb.commit()
             self.postgresdb.refresh(new_model)

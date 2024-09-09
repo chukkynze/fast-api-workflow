@@ -123,7 +123,9 @@ async def get_post(
     return app_response
 
 @router.get("/", status_code=status.HTTP_200_OK)
-async def get_posts(response: Response):
+async def get_posts(
+        response: Response
+):
     started_at = datetime.now().isoformat()
     log.debug("HIT: get posts")
 
@@ -222,6 +224,14 @@ async def update_post(
         new_post_data: UpdatePostDataSchema,
         response: Response
 ):
+    started_at = datetime.now().isoformat()
+    log.info("HIT: update post.")
+
+    log.debug(new_post_data)
+    log.debug(type(new_post_data))
+    log.debug(new_post_data.model_dump())
+
+    # update_data =
 
     service = PostService()
     service_res = service.update_post(id, new_post_data.model_dump())

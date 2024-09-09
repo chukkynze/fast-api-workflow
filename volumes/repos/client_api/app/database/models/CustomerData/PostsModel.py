@@ -1,6 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Integer, Boolean, Float, TIMESTAMP, Uuid
-#from sqlalchemy.sql.sqltypes import TIMESTAMP
+from sqlalchemy import Column, String, Integer, Boolean, Float, TIMESTAMP, Uuid, Sequence
 from sqlalchemy.sql.expression import text
 from app.database.models.BaseModel import BaseAppModel
 
@@ -9,7 +8,7 @@ class PostsModel(BaseAppModel):
     # __table_args__ = ({'schema': 'customerdb.public'}) #db name
     __tablename__ = "posts"
 
-    id = Column(Integer, primary_key=True, index=True, nullable=False)
+    id = Column(Integer, Sequence('posts_id_seq'), primary_key=True, index=True, nullable=False)
     uuid = Column(Uuid(as_uuid=True), nullable=False, unique=True, default=uuid.uuid4)
     title = Column(String, index=True, nullable=False)
     content = Column(String, nullable=False)

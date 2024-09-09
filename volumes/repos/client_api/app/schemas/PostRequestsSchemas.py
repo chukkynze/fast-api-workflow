@@ -59,9 +59,9 @@ class UpdatePostDataSchema(BaseModel):
     because of automatically added fields from defaults and other
     means
     """
-    title: str
-    content: str
-    published: bool = True
+    title: Optional[str] = None
+    content: Optional[str] = None
+    published: Optional[bool] = False
     rating: Optional[float] = None
 
 class PatchDataSchema(BaseModel):
