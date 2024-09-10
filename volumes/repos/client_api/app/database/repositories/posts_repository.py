@@ -9,6 +9,7 @@ from app.database.repositories.BaseAppRepository import RepoResponse
 from app.exceptions.data.PostsExceptions import InsertException
 from app.log.loggers.app_logger import log_exception
 
+
 # Logging
 log = logging.getLogger(__name__)
 
@@ -129,6 +130,10 @@ class PostsRepository:
                 .delete(synchronize_session=False))
             self.postgresdb.commit()
 
+            tbl_name = PostsModel.__tablename__
+            seq_text = text("SELECT setval('posts_id_seq', max(id)+1) FROM posts;")
+            self.postgresdb.execute(seq_text)
+
             return RepoResponse(
                 status=True,
                 data=post,
@@ -152,6 +157,46 @@ class PostsRepository:
             log.debug(e)
             log_exception(log, e)
             raise Exception(f"The posts repository could not delete the post identified by uuid {post_uuid}")
+
+
+
+    def patch_one_by_uuid(self, post_uuid, patched_merged_model: dict):
+        log.debug("Repository is patching a post by the uuid %s", post_uuid)
+        log.debug(post_uuid)
+        log.debug(type(post_uuid))
+        log.debug(patched_merged_model)
+        log.debug(type(patched_merged_model))
+
+        try:
+            updated_post = (self.postgresdb
+                .query(PostsModel)
+                .filter(PostsModel.uuid == post_uuid)
+                .update({
+                    "title": patched_merged_model['title'],
+                    "content": patched_merged_model['content'],
+                    "published": patched_merged_model['published'],
+                    "rating": patched_merged_model['rating'],
+                    "updated_at": patched_merged_model['updated_at'],
+                })
+            )
+            self.postgresdb.commit()
+
+            log.debug("updated_post = ")
+            log.debug(updated_post)
+            log.debug(type(updated_post))
+
+            return RepoResponse(
+                status=True,
+                data=updated_post,
+                errors={},
+                meta={},
+            )
+
+        except Exception as e:
+            log.debug(e)
+            log_exception(log, e)
+            raise Exception(f"The posts repository could not delete the post identified by uuid {post_uuid}")
+
 
 
 

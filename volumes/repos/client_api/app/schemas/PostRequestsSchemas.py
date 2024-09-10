@@ -53,22 +53,20 @@ class GetPostResponseDataSchema(BaseModel):
 
 
 # Update
-class UpdatePostDataSchema(BaseModel):
+class PutDataSchema(BaseModel):
     """
-    The update schema may be different from the creation schema
-    because of automatically added fields from defaults and other
-    means
+    Technically, this should update the entire resource (minus [maybe] the identifieer)
     """
-    title: Optional[str] = None
-    content: Optional[str] = None
-    published: Optional[bool] = False
-    rating: Optional[float] = None
+    title: str = None
+    content: str = None
+    published: bool = False
+    rating: float = None
 
 class PatchDataSchema(BaseModel):
-    id: int
     title: Optional[str]
     content: Optional[str]
     published: Optional[bool] = True
     rating: Optional[float] = None
+
 
 # Delete

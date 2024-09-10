@@ -5,11 +5,11 @@ from fastapi import Depends
 from pydantic import ValidationError
 from redis.exceptions import ConnectionError
 from redis_om import NotFoundError
-
 from app.database.configs.dbs import get_redis_cache
 from app.database.models.ClientCache.PostsModel import PostsCacheModel
 from app.database.repositories.BaseAppRepository import RepoResponse
 from app.log.loggers.app_logger import log_exception
+
 
 log = logging.getLogger(__name__)
 
@@ -96,6 +96,10 @@ class PostsCacheRepository:
             )
         except NotFoundError as e:
             log_exception(log, e)
+            raise Exception("Someting don happen ohh!")
+        except Exception as e:
+            log_exception(log, e)
+            raise Exception("Unknown tin don happen!!")
 
 
     def find_all(self):
@@ -132,6 +136,7 @@ class PostsCacheRepository:
             log_exception(log, e)
             raise Exception("Could not get all posts for the current API user.")
 
+
     def delete_post_by_uuid(self, post_uuid):
         log.debug("%s - Deleting a post with the uuid %s.", self.__class__.__name__, post_uuid)
         log.debug(post_uuid)
@@ -153,6 +158,8 @@ class PostsCacheRepository:
 
         except NotFoundError as e:
             log_exception(log, e)
+            raise Exception("Someting don happen ohh!")
+
 
     def find_one_wt_uuid(self, post_uuid):
         log.debug("%s - Retrieving a post using the uuid %s.", self.__class__.__name__, post_uuid)
@@ -172,7 +179,45 @@ class PostsCacheRepository:
             )
         except NotFoundError as e:
             log_exception(log, e)
+            raise Exception("Someting don happen ohh!")
 
+
+    def patch_one_by_uuid(self, post_uuid, patched_merged_model):
+        log.debug("%s - Patching a cached post with the uuid %s.", self.__class__.__name__, post_uuid)
+        log.debug(post_uuid)
+        log.debug(type(post_uuid))
+        log.debug(patched_merged_model)
+        log.debug(type(patched_merged_model))
+
+        try:
+            updated_cache_model =  (
+                PostsCacheModel
+                .find(PostsCacheModel.uuid == str(post_uuid))
+                .update(
+                    title=patched_merged_model['title'],
+                    content=patched_merged_model['content'],
+                    published="TRUE" if patched_merged_model["published"] else "FALSE",
+                    rating=patched_merged_model['rating'],
+                    updated_at=patched_merged_model['updated_at'].isoformat(),
+                )
+            )
+
+            log.debug("updated_cache_model = ")
+            log.debug(updated_cache_model)
+            log.debug(type(updated_cache_model))
+
+            return RepoResponse(
+                status=True,
+                data=True,
+                meta={},
+                errors={},
+            )
+
+        except ValidationError as e:
+            log.debug(e)
+        except Exception as e:
+            log_exception(log, e)
+            raise Exception("Someting don happen ohh!")
 
 
 

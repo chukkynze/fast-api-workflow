@@ -7,7 +7,7 @@ from fastapi import APIRouter, Response, status
 from pydantic import UUID4, AfterValidator
 
 from app.schemas.PostRequestsSchemas import CreatePostRequestDataSchema, CreatePostInsertDataSchema, \
-    UpdatePostDataSchema, PatchDataSchema
+    PutDataSchema, PatchDataSchema
 from app.services.PostService import PostService
 
 #
@@ -219,9 +219,9 @@ async def delete_post(
 
 
 @router.put("/{post_uuid}", status_code=status.HTTP_200_OK)
-async def update_post(
+async def put_post(
         post_uuid: str | UUID4 | Annotated[str, AfterValidator(lambda x: uuid.UUID(x, version=4))],
-        new_post_data: UpdatePostDataSchema,
+        new_post_data: PutDataSchema,
         response: Response
 ):
     started_at = datetime.now().isoformat()
@@ -265,34 +265,42 @@ async def update_post(
 @router.patch("/{post_uuid}", status_code=status.HTTP_200_OK)
 async def patch_post(
         post_uuid: str | UUID4 | Annotated[str, AfterValidator(lambda x: uuid.UUID(x, version=4))],
-        new_post_data: PatchDataSchema,
+        patch_post_data: PatchDataSchema,
         response: Response
 ):
+    started_at = datetime.now().isoformat()
+    log.info("HIT: patch post.")
+    log.debug(patch_post_data)
 
     service = PostService()
-    service_res = service.patch_post(id, new_post_data.model_dump())
+    service_res = service.patch_post(uuid.UUID(str(post_uuid)), patch_post_data)
+    log.debug("Service response = %s", service_res)
 
-    if service_res["status"] is True:
+    meta = {
+            "started": {
+                "at": started_at,
+                "with": {
+                    "post_uuid": post_uuid,
+                }
+            },
+            "response": {} | service_res.meta
+        }
+
+    if service_res.status is True:
         app_response = {
-            "status": service_res["status"],
-            "message": "Successfully partially updated post.",
-            "data": service_res["data"],
-            "meta": {
-                "timestamp": "",
-                "sent": new_post_data
-            }
+            "status": service_res.status,
+            "message": "Successfully patched the post.",
+            "data": service_res.data,
+            "meta": meta
         }
     else:
         response.status_code = status.HTTP_400_BAD_REQUEST
         app_response = {
-            "status": service_res["status"],
-            "message": "Could not update this post.",
-            "data": service_res["data"],
-            "errors": service_res["errors"],
-            "meta": {
-                "timestamp": "",
-                "sent": new_post_data
-            }
+            "status": service_res.status,
+            "message": "Could not patch the post.",
+            "data": service_res.data,
+            "errors": service_res.errors,
+            "meta": meta
         }
 
     return app_response

@@ -16,7 +16,8 @@ from app.exceptions.data.PostsExceptions import (
     ReadOneCachedException
 )
 from app.log.loggers.app_logger import log_exception
-from app.schemas.PostRequestsSchemas import CreatePostInsertDataSchema, GetPostResponseDataSchema, CreatePostResponseDataSchema
+from app.schemas.PostRequestsSchemas import CreatePostInsertDataSchema, GetPostResponseDataSchema, \
+    CreatePostResponseDataSchema, PatchDataSchema
 from app.services.BaseAppService import ServiceResponse
 
 
@@ -421,53 +422,73 @@ class PostService:
             raise DeleteException("The service could not delete a post from the posts repository.")
 
 
-
-
     # Update
-    def mark_post_as_deleted(self, post_uuid: uuid):
-        log.debug('Service is marking data as deleted for the post with uuid = %s.', post_uuid)
+    def patch_post(self, post_uuid: uuid, patch_post_data: PatchDataSchema):
+        log.debug('The %s is patching the data for the post with uuid = %s.', self.__class__.__name__, post_uuid)
 
         try:
-            output_model = self.posts_repo.mark_one_as_deleted_by_uuid(post_uuid)
-            log.debug("output_model = ")
-            log.debug(output_model)
+            current_model = self.posts_repo.find_one_by_uuid(post_uuid)
+            patched_data_model = patch_post_data.model_dump() | {"updated_at": datetime.datetime.now()}
+            patched_merged_model = current_model.data.__dict__ | patched_data_model
+            log.debug("patched_merged_model = ")
+            log.debug(patched_merged_model)
 
-            return self.service_response(True, {}, {})
+            # Update the model in the db
+            self.patch_post_in_db(post_uuid, patched_merged_model)
+
+            # Update the model in the cache
+            self.patch_post_in_cache(post_uuid, patched_merged_model)
+
+            # Get the newly updated post details
+            updated_post_res = self.posts_repo.find_one_by_uuid(post_uuid)
+            log.debug('%s - Repo Response: ', self.__class__.__name__)
+            log.debug(updated_post_res.dict())
+
+            status = True
+            data = updated_post_res.data.__dict__
+            meta = {
+                "completed": {
+                    "at": datetime.datetime.now().isoformat(),
+                },
+            }
+            errors = {}
+
+            return ServiceResponse(
+                status=status,
+                data=data,
+                errors=errors,
+                meta=meta,
+            )
+
         except Exception as e:
             log_exception(log, e)
-            raise DeletePostFailurePostServiceException("The service could not delete a post from the posts repository.")
+            raise Exception("The service could not patch a post from the posts repository.")
 
-    def update_post(self, post_id, new_post_data):
+    def patch_post_in_db(self, post_uuid, patched_merged_model):
+        log.debug('The %s is patching the data for the post with uuid = %s in the database.', self.__class__.__name__, post_uuid)
 
-        print(self.post_db[post_id])
-        print(type(self.post_db[post_id]))
+        try:
+            update_db_res = self.posts_repo.patch_one_by_uuid(post_uuid, patched_merged_model)
+            log.debug('%s - Repo Response: ', self.__class__.__name__)
+            log.debug(update_db_res.dict())
 
-        print(new_post_data)
-        print(type(new_post_data))
+            if update_db_res.data != 1:
+                raise Exception(f"The service did not patch the data for the post with uuid = {post_uuid} in the database.")
 
-        status = True
-        data = {}
-        errors: dict[Any, Any] = {}  # type: ignore
+        except Exception as e:
+            raise Exception("The service could not patch the db stored data.")
 
-        return self.service_response(
-            status,
-            data,
-            errors
-        )
+    def patch_post_in_cache(self, post_uuid, patched_merged_model):
+        log.debug('The %s is patching the data for the post with uuid = %s in the cache.', self.__class__.__name__, post_uuid)
 
-    def patch_post(self, post_id, new_post_data):
-        print(self.post_db[post_id])
-        print(type(self.post_db[post_id]))
+        try:
+            update_cache_res = self.posts_cache.patch_one_by_uuid(post_uuid, patched_merged_model)
+            log.debug('%s - Repo Response: ', self.__class__.__name__)
+            log.debug(update_cache_res.dict())
 
-        print(new_post_data)
-        print(type(new_post_data))
+            if update_cache_res.data is not True:
+                raise Exception("The service did not patch the data for the post in the cache.")
 
-        status = True
-        data = {}
-        errors: dict[Any, Any] = {}  # type: ignore
-
-        return self.service_response(
-            status,
-            data,
-            errors
-        )
+        except Exception as e:
+            log_exception(log, e)
+            raise Exception("The service could not patch the cached data.")
