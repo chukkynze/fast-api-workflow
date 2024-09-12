@@ -1,7 +1,6 @@
 import os
 from enum import Enum
 from functools import lru_cache
-
 from pydantic.types import SecretStr
 from pydantic_settings import BaseSettings
 
@@ -92,8 +91,10 @@ class AppSettings(BaseSettings):
     REDIS_AI_PORT: int
     REDIS_AI_PRIMARY_DB: int
 
-@lru_cache
-def get_app_env_config():
-    config = AppSettings(_env_file=os.path.join(os.path.dirname(__file__), ".env"))
-    return config
 
+def get_app_env_config():
+    config = AppSettings(
+        _env_file=os.path.join(os.path.dirname(__file__), ".env"),
+        _env_file_encoding="utf-8"
+    )
+    return config

@@ -2,12 +2,14 @@ import logging
 import uuid
 from datetime import datetime
 from typing import Annotated
-
 from fastapi import APIRouter, Response, status
 from pydantic import UUID4, AfterValidator
-
-from app.schemas.PostRequestsSchemas import CreatePostRequestDataSchema, CreatePostInsertDataSchema, \
-    PutDataSchema, PatchDataSchema
+from app.schemas.AppSchemas import AppResponse
+from app.schemas.PostRequestsSchemas import (
+    CreatePostRequestDataSchema,
+    CreatePostInsertDataSchema,
+    PatchDataSchema
+)
 from app.services.PostService import PostService
 
 #
@@ -17,13 +19,12 @@ from app.services.PostService import PostService
 #   Of course use k6 to test out load and implement ddos protection
 #
 
-
-
 # Logging
 log = logging.getLogger(__name__)
 
+
 router = APIRouter(
-    prefix="/posts",
+    prefix="/api/v1/posts",
     tags=["Posts"],
 )
 
@@ -42,42 +43,34 @@ async def create_post(
         'published': request_post_data.published if 'published' in request_post_data else True,
         'rating': request_post_data.rating if 'rating' in request_post_data else 0.0,
     }
-    log.debug("Formatted request data")
 
     # Process (and validate) insert data
     insert_post_data = CreatePostInsertDataSchema(**insert_data)
-    log.debug("Processed and validated insert data")
 
     service = PostService()
     service_res = service.create_post(insert_post_data)
-    log.debug("Service response = %s", service_res)
-
     meta = {
-                "started": {
-                    "at": started_at,
-                    "with": request_post_data
-                },
-                "response": {} | service_res.meta
-            }
+        "started": {
+            "at": started_at,
+            "with": request_post_data
+        },
+        "response": {} | service_res.meta
+    }
 
     if service_res.status is True:
-        app_response = {
-            "status": service_res.status,
-            "message": "Successfully created post.",
-            "data": service_res.data,
-            "meta": meta
-        }
+        message = "Successfully created post."
     else:
         response.status_code = status.HTTP_400_BAD_REQUEST
-        app_response = {
-            "status": service_res.status,
-            "message": "Could not create a post.",
-            "data": service_res.data,
-            "errors": service_res.errors,
-            "meta": meta
-        }
+        message = "Could not create a post."
 
-    return app_response
+    return AppResponse(
+        status=service_res.status,
+        message=message,
+        data=service_res.data,
+        errors=service_res.errors,
+        meta=meta
+    )
+
 
 @router.get("/{post_uuid}", status_code=status.HTTP_200_OK)
 async def get_post(
@@ -90,8 +83,6 @@ async def get_post(
 
     service = PostService()
     service_res = service.get_post(uuid.UUID(str(post_uuid)), ckey)
-    log.debug("Service response = %s", service_res)
-
     meta = {
             "started": {
                 "at": started_at,
@@ -104,35 +95,29 @@ async def get_post(
         }
 
     if service_res.status is True:
-        app_response = {
-            "status": service_res.status,
-            "message": "Successfully retrieved the post.",
-            "data": service_res.data,
-            "meta": meta
-        }
+        message = f"Successfully retrieved the post identified by uuid: {post_uuid}."
     else:
         response.status_code = status.HTTP_400_BAD_REQUEST
-        app_response = {
-            "status": service_res.status,
-            "message": "Could not get the post.",
-            "data": service_res.data,
-            "errors": service_res.errors,
-            "meta": meta
-        }
+        message = f"Could not retrieve the post identified by uuid: {post_uuid}."
 
-    return app_response
+    return AppResponse(
+        status=service_res.status,
+        message=message,
+        data=service_res.data,
+        errors=service_res.errors,
+        meta=meta
+    )
 
-@router.get("/", status_code=status.HTTP_200_OK)
+
+@router.get("/", status_code=status.HTTP_200_OK, response_model=AppResponse)
 async def get_posts(
         response: Response
 ):
     started_at = datetime.now().isoformat()
-    log.debug("HIT: get posts")
+    log.info("HIT: get posts")
 
     service = PostService()
     service_res = service.get_posts()
-    log.debug("Service response = %s", service_res)
-
     meta = {
             "started": {
                 "at": started_at,
@@ -142,23 +127,19 @@ async def get_posts(
         }
 
     if service_res.status is True:
-        app_response = {
-            "status": service_res.status,
-            "message": "Successfully retrieved the post.",
-            "data": service_res.data,
-            "meta": meta
-        }
+        message = "Successfully retrieved all posts."
     else:
         response.status_code = status.HTTP_400_BAD_REQUEST
-        app_response = {
-            "status": service_res.status,
-            "message": "Could not get the post.",
-            "data": service_res.data,
-            "errors": service_res.errors,
-            "meta": meta
-        }
+        message = "Could not retrieve all posts."
 
-    return app_response
+    return AppResponse(
+        status=service_res.status,
+        message=message,
+        data=service_res.data,
+        errors=service_res.errors,
+        meta=meta
+    )
+
 
 @router.delete("/{post_uuid}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_post(
@@ -170,8 +151,6 @@ async def delete_post(
 
     service = PostService()
     service_res = service.delete_post(uuid.UUID(str(post_uuid)))
-    log.debug("Service response = %s", service_res)
-
     meta = {
             "started": {
                 "at": started_at,
@@ -183,83 +162,16 @@ async def delete_post(
         }
 
     if service_res.status is True:
-        app_response = Response(status_code=status.HTTP_204_NO_CONTENT)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     else:
         response.status_code = status.HTTP_400_BAD_REQUEST
-        app_response = {
-            "status": service_res.status,
-            "message": "Could not delete the post.",
-            "data": service_res.data,
-            "errors": service_res.errors,
-            "meta": meta
-        }
-
-    return app_response
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@router.put("/{post_uuid}", status_code=status.HTTP_200_OK)
-async def put_post(
-        post_uuid: str | UUID4 | Annotated[str, AfterValidator(lambda x: uuid.UUID(x, version=4))],
-        new_post_data: PutDataSchema,
-        response: Response
-):
-    started_at = datetime.now().isoformat()
-    log.info("HIT: update post.")
-
-    log.debug(new_post_data)
-    log.debug(type(new_post_data))
-    log.debug(new_post_data.model_dump())
-
-    # update_data =
-
-    service = PostService()
-    service_res = service.update_post(id, new_post_data.model_dump())
-
-    if service_res["status"] is True:
-        app_response = {
-            "status": service_res["status"],
-            "message": "Successfully updated post.",
-            "data": service_res["data"],
-            "meta": {
-                "timestamp": "",
-                "sent": new_post_data
-            }
-        }
-    else:
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        app_response = {
-            "status": service_res["status"],
-            "message": "Could not update this post.",
-            "data": service_res["data"],
-            "errors": service_res["errors"],
-            "meta": {
-                "timestamp": "",
-                "sent": new_post_data
-            }
-        }
-
-    return app_response
+        return AppResponse(
+            status=service_res.status,
+            message=f"Could not delete the post identified by uuid: {post_uuid}.",
+            data=service_res.data,
+            errors=service_res.errors,
+            meta=meta
+        )
 
 
 @router.patch("/{post_uuid}", status_code=status.HTTP_200_OK)
@@ -270,12 +182,9 @@ async def patch_post(
 ):
     started_at = datetime.now().isoformat()
     log.info("HIT: patch post.")
-    log.debug(patch_post_data)
 
     service = PostService()
     service_res = service.patch_post(uuid.UUID(str(post_uuid)), patch_post_data)
-    log.debug("Service response = %s", service_res)
-
     meta = {
             "started": {
                 "at": started_at,
@@ -287,21 +196,15 @@ async def patch_post(
         }
 
     if service_res.status is True:
-        app_response = {
-            "status": service_res.status,
-            "message": "Successfully patched the post.",
-            "data": service_res.data,
-            "meta": meta
-        }
+        message = f"Successfully updated the post identified by uuid: {post_uuid}."
     else:
         response.status_code = status.HTTP_400_BAD_REQUEST
-        app_response = {
-            "status": service_res.status,
-            "message": "Could not patch the post.",
-            "data": service_res.data,
-            "errors": service_res.errors,
-            "meta": meta
-        }
+        message = f"Could not update the post identified by uuid: {post_uuid}."
 
-    return app_response
-
+    return AppResponse(
+        status=service_res.status,
+        message=message,
+        data=service_res.data,
+        errors=service_res.errors,
+        meta=meta
+    )

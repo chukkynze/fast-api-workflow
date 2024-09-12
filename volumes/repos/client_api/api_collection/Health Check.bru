@@ -1,0 +1,16 @@
+meta {
+  name: Health Check
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{domain}}/health-check
+  body: none
+  auth: none
+}
+
+headers {
+  X-Token: fake-super-secret-token
+  Accept-Version: 0.0.1
+}

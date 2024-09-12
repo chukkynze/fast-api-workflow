@@ -1,0 +1,25 @@
+meta {
+  name: Update Post
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{domain}}/posts/bc75f91f-1ee3-4a07-93a7-02a2b08274ee
+  body: json
+  auth: none
+}
+
+headers {
+  X-Token: fake-super-secret-token
+  Accept-Version: 0.0.1
+}
+
+body:json {
+  {
+    "title": "This 4 is an updated title",
+    "content": "This 4 is updated content",
+    "published": false,
+    "rating": 4.8
+  }
+}
