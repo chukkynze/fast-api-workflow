@@ -459,7 +459,16 @@ class PostService:
             log.debug(updated_post_res.dict())
 
             status = True
-            data = updated_post_res.data.__dict__
+            data = GetPostResponseDataSchema(
+                uuid=str(updated_post_res.data.uuid),
+                title=updated_post_res.data.title,
+                content=updated_post_res.data.content,
+                published=updated_post_res.data.published,
+                rating=updated_post_res.data.rating,
+                created_at=updated_post_res.data.created_at,
+                updated_at=updated_post_res.data.updated_at,
+                deleted_at=None if updated_post_res.data.deleted_at is None or 'NULL' else updated_post_res.data.deleted_at,
+            ).model_dump()
             meta = {
                 "completed": {
                     "at": datetime.datetime.now().isoformat(),
@@ -492,7 +501,7 @@ class PostService:
         except Exception as e:
             raise Exception("The service could not patch the db stored data.")
 
-    def patch_post_in_cache(self, post_uuid, patched_merged_model):
+    def patch_post_in_cache(self, post_uuid, patched_merged_model) -> None:
         log.debug('The %s is patching the data for the post with uuid = %s in the cache.', self.__class__.__name__, post_uuid)
 
         try:

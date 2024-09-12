@@ -100,6 +100,7 @@ class PostsRepository:
 
 
     def find_one_by_uuid(self, post_uuid):
+        log.debug('%s - Finding a post by its uuid: %s.', self.__class__.__name__, post_uuid)
         try:
             post = (self.postgresdb.query(PostsModel)
                      .filter(
