@@ -1,14 +1,15 @@
 import datetime
 import logging
 import os
-
+import json
 from fastapi import FastAPI, Depends, status
 from redis_om import Migrator
-from app.dependencies import get_token_header
+from app.dependencies import get_x_token_header, get_accept_version_header
 from app.exceptions.AppExceptionHandlers import add_app_exception_handlers
 from app.exceptions.data.AppExceptions import add_data_exception_handlers
 from app.log.loggers.app_logger import get_app_logger
 from app.routers import PostsRouter
+from app.schemas.AppSchemas import AppResponse
 from config import get_app_env_config
 
 app_env_config = get_app_env_config()
@@ -16,7 +17,7 @@ app_env_config = get_app_env_config()
 app = FastAPI(
     title=app_env_config.APP_PROJECT_NAME,
     description=app_env_config.APP_PROJECT_DESCRIPTION,
-    dependencies=[Depends(get_token_header)]
+    dependencies=[Depends(get_x_token_header), Depends(get_accept_version_header)]
 )
 
 # Logging
@@ -34,9 +35,9 @@ app.include_router(PostsRouter.router)
 Migrator().run()
 
 
-@app.get("/", status_code=status.HTTP_200_OK)
+@app.get("/", status_code=status.HTTP_200_OK, response_model=AppResponse)
 async def root():
-    log.info("Root endpoint hit.")
+    log.info("HIT: Root.")
 
     output_data = {
         "company": "AcademyStack LLC",
@@ -44,8 +45,8 @@ async def root():
         "description": app_env_config.APP_PROJECT_DESCRIPTION,
     }
 
-    if app_env_config.APP_ENV in ["development", "dev"]:
-        output_data['settings'] = app_env_config.dict()
+    if app_env_config.APP_ENV in ["development", "dev"] and app_env_config.APP_LOG_LEVEL == "DEBUG":
+        output_data['settings'] = json.loads(app_env_config.model_dump_json())
 
     output_meta = {
         "timestamp": datetime.datetime.now().isoformat(),
@@ -68,25 +69,15 @@ async def root():
         "meta": output_meta,
     }
 
-    return output
-
-# @app.on_event("startup")
-# async def startup_event():
-#     logger.info("Opening mols bakery...")
-#     app.state.redis = await init_redis_pool()
-#     app.state.mols_repo = MoleculesRepository(app.state.redis)
-#
-#
-# @app.on_event("shutdown")
-# async def shutdown_event():
-#     logger.info("Closing mols bakery...")
-#     await app.state.redis.close()
+    return AppResponse(**output)
 
 
-@app.get("/health-check", status_code=status.HTTP_200_OK)
+@app.get("/health-check", status_code=status.HTTP_200_OK, response_model=AppResponse)
 async def health_check():
-    log.info("Health check endpoint hit.")
-    return {
-        "status": True,
-        "message": "But Jesus looked at them and said, “With man this is impossible, but with God all things are possible."
-    }
+    log.info("HIT: Health Check")
+
+    return AppResponse(
+        status=True,
+        message="Health check endpoint is up and running.",
+        data="But Jesus looked at them and said, \"With man this is impossible, but with God all things are possible\"."
+    )

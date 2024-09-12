@@ -1,5 +1,5 @@
 import logging
-
+from fastapi.exceptions import HTTPException
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -20,6 +20,17 @@ def add_app_exception_handlers(app: FastAPI) -> None:
     :param app:
     :return:
     """
+
+    @app.exception_handler(HTTPException)
+    async def global_http_exception_handler(request: Request, exc: HTTPException):
+        log.error(f"HTTP Exception raised: {exc}")
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "status": False,
+                "message": f"HTTP Exception: {exc}",
+            },
+        )
 
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):
