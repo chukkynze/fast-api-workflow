@@ -22,6 +22,8 @@ services:
       # different database number when connecting to Redis, you can expect the code to raise a MigrationError
       # when you run the migrator.
       REDIS_OM_URL: redis://client-redis-stack:6379/0
+      # APP_ENV here sets the value for the os. The value for the os will override any
+      # app level settings
       APP_ENV: development
       PYTHONPATH: "$${PYTHONPATH}:/var/www/json"
 #    develop:
