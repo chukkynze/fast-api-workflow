@@ -50,6 +50,7 @@ def get_mysql_db():
     Retrieving the mysql db connection.
     :return: A SqlAlchemy Session - sqlalchemy.orm.session.sessionmaker
     """
+    log.debug("Retrieving the MySQL db session.")
     mysql_session = sessionmaker(
         bind=get_mysql_db_engine(),
         autocommit=app_env_config.MYSQLDB_SESSION_AUTOCOMMIT,
