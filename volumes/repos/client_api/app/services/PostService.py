@@ -211,7 +211,7 @@ class PostService:
         try:
             # Check if the cache key provided will find a cached mode
             # of course check if the returned model has the same uuid as the sent post uuid
-            cached_model = self.get_post_from_cache_wt_key(cache_key, post_uuid)
+            cached_model = None if cache_key is None else self.get_post_from_cache_wt_key(cache_key, post_uuid)
 
             # if the cached model is still None, we get the model from the db
             # of course we store the newly retrieved model in the cache as well
@@ -241,7 +241,7 @@ class PostService:
                     )
                 else:
                     output_model = repo_res.data
-                    # Use uuid to find a cached model first. If that doesn't exist, then store
+                    # Use uuid to find a cached model first - Just in case the cache key was wrong. If that doesn't exist, then store
                     # otherwise u create dup data with different cache keys
                     cached_model = self.get_post_from_cache_wt_uuid(post_uuid)
 
@@ -329,15 +329,15 @@ class PostService:
         log.debug('%s - Retrieving a post from the cache using its uuid.', self.__class__.__name__)
 
         try:
-            repo_res = self.posts_cache.find_one_wt_uuid(post_uuid)
-            log.debug('%s - Repo Response: ', self.__class__.__name__)
-            log.debug(type(repo_res))
+            cache_repo_res = self.posts_cache.find_one_wt_uuid(post_uuid)
+            log.debug('%s - Cache Repo Response: ', self.__class__.__name__)
+            log.debug(type(cache_repo_res))
 
-            return None if repo_res is None else repo_res.data
+            return cache_repo_res.data
 
         except Exception as e:
             log_exception(log, e)
-            raise ReadOneCachedException("The service could not get a post from the cache repository.")
+            raise ReadOneCachedException(f"The service could not get a post from the cache repository with the uuid {post_uuid}.")
 
     def get_posts(self):
         log.debug('The %s is retrieving all posts.', self.__class__.__name__)
@@ -348,13 +348,27 @@ class PostService:
 
         if repo_res.meta['count'] == 0:
             log.debug('%s - No posts exist in cache. Retrieving from the repo instead.', self.__class__.__name__)
-            posts = self.get_posts_from_repo()
+            repo_posts = self.get_posts_from_repo()
             log.debug("Retrieved all posts from the repo.")
-            log.debug(posts)
-            log.debug(type(posts))
+            log.debug(repo_posts)
+            log.debug(type(repo_posts))
+
+            output_posts = []
+            for repo_post in repo_posts:
+                cleaned_post = GetPostResponseDataSchema(
+                    uuid=str(repo_post.uuid),
+                    title=repo_post.title,
+                    content=repo_post.content,
+                    published=repo_post.published,
+                    rating=repo_post.rating,
+                    created_at=repo_post.created_at,
+                    updated_at=repo_post.updated_at,
+                    deleted_at=None if repo_post.deleted_at is None or 'NULL' else repo_post.deleted_at,
+                )
+                output_posts.append(cleaned_post)
 
         else:
-            posts = []
+            output_posts = []
             for cached_post in repo_res.data:
                 cleaned_post = GetPostResponseDataSchema(
                     uuid=cached_post.uuid,
@@ -366,17 +380,17 @@ class PostService:
                     updated_at=cached_post.updated_at,
                     deleted_at=None if cached_post.deleted_at is None or 'NULL' else cached_post.deleted_at,
                 )
-                posts.append(cleaned_post)
+                output_posts.append(cleaned_post)
 
         status = True
-        data = posts
+        data = output_posts
         errors = {}
         meta = {
             "completed": {
                 "at": datetime.datetime.now().isoformat(),
             },
             "model": {
-                "total_posts": len(posts)
+                "total_posts": len(output_posts)
             }
         }
         return ServiceResponse(

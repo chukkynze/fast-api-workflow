@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 
 
 router = APIRouter(
-    prefix="/api/v1/posts",
+    prefix="/posts",
     tags=["Posts"],
 )
 

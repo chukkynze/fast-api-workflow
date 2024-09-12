@@ -83,6 +83,7 @@ class PostsRepository:
         alias for list
         :return: RepoResponse
         """
+        log.debug('%s - Finding all posts.', self.__class__.__name__)
         try:
             posts = self.postgresdb.query(PostsModel).filter(PostsModel.deleted_at == None).all()
 

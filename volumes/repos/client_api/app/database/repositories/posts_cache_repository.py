@@ -109,13 +109,14 @@ class PostsCacheRepository:
          - alias for list
         :return: RepoResponse
         """
-        log.debug('%s - Retrieving all posts.', self.__class__.__name__)
+        log.debug('%s - Retrieving all posts from the cache.', self.__class__.__name__)
 
         try:
             cached_posts = []
             for pk in PostsCacheModel.all_pks():
                 cached_posts.append(PostsCacheModel.get(pk))
             log.debug("The posts cache repo has retrieved all cached posts.")
+            log.debug("cached_posts = ")
             log.debug(cached_posts)
 
             return RepoResponse(
@@ -179,7 +180,16 @@ class PostsCacheRepository:
             )
         except NotFoundError as e:
             log_exception(log, e)
-            raise Exception("Someting don happen ohh!")
+
+            return RepoResponse(
+                status=True,
+                data=None,
+                meta={},
+                errors={},
+            )
+        except Exception as e:
+            log_exception(log, e)
+            raise Exception("Unknown exception while retrieving a cached post using a uuid.")
 
 
     def patch_one_by_uuid(self, post_uuid, patched_merged_model):
