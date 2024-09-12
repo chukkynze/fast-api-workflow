@@ -15,6 +15,7 @@ def posts_table_seeder():
     with get_postgres_db_engine().connect() as connection:
         connection.execute(text("TRUNCATE TABLE posts"))
         connection.commit()
+        # Update all sequences
         connection.execute(text("SELECT setval('posts_id_seq', max(id)+1) FROM posts;"))
 
     PostsFactory.create_batch(5)

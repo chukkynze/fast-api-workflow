@@ -37,16 +37,8 @@ class PostsRepository:
         """
 
         log.debug('%s - Received data for a new post.', self.__class__.__name__)
-        # log.debug("title = %s", title)
-        # log.debug("content = %s", content)
-        # log.debug("rating = %s", rating)
-        # log.debug("published = %s", published)
 
         try:
-            tbl_name = PostsModel.__tablename__
-            seq_text = text("SELECT setval('posts_id_seq', max(id)+1) FROM posts;")
-            self.postgresdb.execute(seq_text)
-
             new_model = PostsModel(
                 title=title,
                 content=content,
@@ -54,10 +46,6 @@ class PostsRepository:
                 published=published
             )
             log.debug('%s - Created a posts model with the new post data.', self.__class__.__name__)
-            # log.debug("new_model title = %s", new_model.title)
-            # log.debug("new_model content = %s", new_model.content)
-            # log.debug("new_model rating = %s", new_model.rating)
-            # log.debug("new_model published = %s", new_model.published)
 
             self.postgresdb.flush()
             self.postgresdb.add(new_model)
@@ -131,10 +119,6 @@ class PostsRepository:
                 .filter(PostsModel.uuid == post_uuid)
                 .delete(synchronize_session=False))
             self.postgresdb.commit()
-
-            tbl_name = PostsModel.__tablename__
-            seq_text = text("SELECT setval('posts_id_seq', max(id)+1) FROM posts;")
-            self.postgresdb.execute(seq_text)
 
             return RepoResponse(
                 status=True,
