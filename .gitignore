@@ -26,7 +26,6 @@ Thumbs.db
 *.mov
 *.wmv
 
-!/.env.docker-compose
 /volumes/repos_backup/
 /.env.docker-compose
 /scripts/makefile/config.sh
@@ -36,3 +35,4 @@ Thumbs.db
 /volumes/data/client/mysql/storage/persist/
 /volumes/repos/client_api/.venv/
 /volumes/data/client/redis/data/
+/.venv/

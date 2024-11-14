@@ -61,6 +61,7 @@ RUN apt-get update \
        libffi-dev                   \
        libgdbm-dev                  \
        libgif-dev                   \
+       libgirepository1.0-dev       \
        libjpeg-dev                  \
        liblzma-dev                  \
        default-libmysqlclient-dev   \
